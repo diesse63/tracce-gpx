@@ -36,7 +36,6 @@
 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
-
     const polylines = [];
 
     fetch(scriptURL)
@@ -53,18 +52,14 @@
             const polyline = L.polyline(coords, { color: colore, weight: 3 }).addTo(map);
 
             const popupContent = `
-              <b>${traccia["Nome File"]}</b><br>
               Tipo: ${traccia.TipoPercorso || "N/D"}<br>
-              Data: ${traccia.Data}<br>
               Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
               Dislivello: ${traccia["Dislivello (m)"]} m<br>
-              Durata: ${traccia.Durata}<br>
               <a href="${traccia.LinkGPX}" target="_blank">Scarica GPX</a>
             `;
 
             polyline.bindPopup(popupContent);
 
-            // Evidenziazione al mouseover
             polyline.on('mouseover', function () {
               this.setStyle({ weight: 6 });
             });
@@ -72,8 +67,13 @@
               this.setStyle({ weight: 3 });
             });
 
-            // Salva per gestione futura
-            polylines.push({ polyline, coords, popupContent });
+            polylines.push({
+              polyline,
+              coords,
+              tipo: traccia.TipoPercorso || "N/D",
+              lunghezza: traccia["Lunghezza (km)"],
+              dislivello: traccia["Dislivello (m)"]
+            });
 
             allBounds.push(...coords);
           } catch (e) {
@@ -87,22 +87,50 @@
       })
       .catch(err => console.error("Errore nel recupero dati:", err));
 
-    // Click sulla mappa → trova tracce vicine
+    let currentPopup = null;
+
     map.on('click', function (e) {
-      const raggio = 0.1; // distanza in km (100 m)
+      const raggio = 0.05; // 50 metri in km
 
       const tracceVicino = polylines.filter(t => {
         return t.coords.some(([lat, lon]) => getDistanceFromLatLonInKm(lat, lon, e.latlng.lat, e.latlng.lng) <= raggio);
       });
 
       if (tracceVicino.length > 0) {
-        const popup = L.popup().setLatLng(e.latlng);
-        popup.setContent(tracceVicino.map(t => t.popupContent).join("<hr>"));
-        popup.openOn(map);
+        const contenutoPopup = `
+          <b>Tracce entro 50 m:</b><br><ul style="padding-left:16px;">
+          ${tracceVicino.map(t =>
+            `<li>${t.tipo} – ${t.lunghezza} km, ${t.dislivello} m</li>`
+          ).join('')}
+          </ul>
+          <small>(Premi ESC o Indietro per chiudere)</small>
+        `;
+
+        if (currentPopup) map.closePopup(currentPopup);
+        currentPopup = L.popup({ closeOnEscapeKey: false, closeOnClick: false })
+          .setLatLng(e.latlng)
+          .setContent(contenutoPopup)
+          .openOn(map);
+
+        history.pushState({ popupOpen: true }, '');
       }
     });
 
-    // Haversine per distanza tra due coordinate
+    document.addEventListener('keydown', function (e) {
+      if (e.key === "Escape" && currentPopup) {
+        map.closePopup(currentPopup);
+        currentPopup = null;
+        history.back();
+      }
+    });
+
+    window.addEventListener("popstate", function () {
+      if (currentPopup) {
+        map.closePopup(currentPopup);
+        currentPopup = null;
+      }
+    });
+
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -115,7 +143,6 @@
       return R * c;
     }
 
-    // Legenda
     const legend = L.control({ position: "bottomright" });
     legend.onAdd = function () {
       const div = L.DomUtil.create("div", "legend");
