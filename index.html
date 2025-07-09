@@ -2,11 +2,26 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX</title>
+  <title>Archivio Tracce GPX - Colori e Legenda</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .legend {
+      background: white;
+      line-height: 1.4em;
+      padding: 6px 8px;
+      font: 14px Arial, sans-serif;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+    }
+    .legend i {
+      width: 16px;
+      height: 16px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.9;
+    }
   </style>
 </head>
 <body>
@@ -21,6 +36,12 @@
 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
 
+    const getColorByTipo = tipo => {
+      if (tipo === 'Trekking') return 'green';
+      if (tipo === 'MTB') return 'red';
+      return 'gray'; // Vuoto o sconosciuto
+    };
+
     fetch(scriptURL)
       .then(response => response.json())
       .then(data => {
@@ -30,10 +51,11 @@
             try {
               const coords = JSON.parse(traccia.Coordinate);
               const latlngs = coords.map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
-              const polyline = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+              const colore = getColorByTipo(traccia.TipoPercorso);
+              const polyline = L.polyline(latlngs, { color: colore }).addTo(map);
               polyline.bindPopup(`
                 <b>${traccia["Nome File"]}</b><br>
-                Tipo: ${traccia.TipoPercorso}<br>
+                Tipo: ${traccia.TipoPercorso || "N/D"}<br>
                 Data: ${traccia.Data}<br>
                 Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
                 Dislivello: ${traccia["Dislivello (m)"]} m<br>
@@ -53,6 +75,19 @@
       .catch(error => {
         console.error('Errore nel recupero dati:', error);
       });
+
+    // Legenda
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create("div", "legend");
+      const tipi = ["Trekking", "MTB", "N/D"];
+      const colori = { Trekking: "green", MTB: "red", "N/D": "gray" };
+      tipi.forEach(tipo => {
+        div.innerHTML += `<i style="background:${colori[tipo]};"></i> ${tipo}<br>`;
+      });
+      return div;
+    };
+    legend.addTo(map);
   </script>
 </body>
 </html>
