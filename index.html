@@ -35,50 +35,89 @@
     }).addTo(map);
 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
+    const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
 
-    const getColorByTipo = tipo => {
-      if (tipo === 'Trekking') return 'green';
-      if (tipo === 'MTB') return 'red';
-      return 'gray'; // Vuoto o sconosciuto
-    };
+    const polylines = [];
 
     fetch(scriptURL)
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => {
         const allBounds = [];
+
         data.forEach(traccia => {
-          if (traccia.Coordinate) {
-            try {
-              const coords = JSON.parse(traccia.Coordinate);
-              const latlngs = coords.map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
-              const colore = getColorByTipo(traccia.TipoPercorso);
-              const polyline = L.polyline(latlngs, { color: colore }).addTo(map);
-              polyline.bindPopup(`
-                <b>${traccia["Nome File"]}</b><br>
-                Tipo: ${traccia.TipoPercorso || "N/D"}<br>
-                Data: ${traccia.Data}<br>
-                Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
-                Dislivello: ${traccia["Dislivello (m)"]} m<br>
-                Durata: ${traccia.Durata}<br>
-                <a href="${traccia.LinkGPX}" target="_blank">Scarica GPX</a>
-              `);
-              allBounds.push(...latlngs);
-            } catch (err) {
-              console.error('Errore parsing coordinate:', err);
-            }
+          if (!traccia.Coordinate) return;
+
+          try {
+            const coords = JSON.parse(traccia.Coordinate).map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
+            const colore = getColorByTipo(traccia.TipoPercorso);
+            const polyline = L.polyline(coords, { color: colore, weight: 3 }).addTo(map);
+
+            const popupContent = `
+              <b>${traccia["Nome File"]}</b><br>
+              Tipo: ${traccia.TipoPercorso || "N/D"}<br>
+              Data: ${traccia.Data}<br>
+              Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
+              Dislivello: ${traccia["Dislivello (m)"]} m<br>
+              Durata: ${traccia.Durata}<br>
+              <a href="${traccia.LinkGPX}" target="_blank">Scarica GPX</a>
+            `;
+
+            polyline.bindPopup(popupContent);
+
+            // Evidenziazione al mouseover
+            polyline.on('mouseover', function () {
+              this.setStyle({ weight: 6 });
+            });
+            polyline.on('mouseout', function () {
+              this.setStyle({ weight: 3 });
+            });
+
+            // Salva per gestione futura
+            polylines.push({ polyline, coords, popupContent });
+
+            allBounds.push(...coords);
+          } catch (e) {
+            console.error("Errore parsing:", e);
           }
         });
+
         if (allBounds.length > 0) {
           map.fitBounds(allBounds);
         }
       })
-      .catch(error => {
-        console.error('Errore nel recupero dati:', error);
+      .catch(err => console.error("Errore nel recupero dati:", err));
+
+    // Click sulla mappa → trova tracce vicine
+    map.on('click', function (e) {
+      const raggio = 0.1; // distanza in km (100 m)
+
+      const tracceVicino = polylines.filter(t => {
+        return t.coords.some(([lat, lon]) => getDistanceFromLatLonInKm(lat, lon, e.latlng.lat, e.latlng.lng) <= raggio);
       });
+
+      if (tracceVicino.length > 0) {
+        const popup = L.popup().setLatLng(e.latlng);
+        popup.setContent(tracceVicino.map(t => t.popupContent).join("<hr>"));
+        popup.openOn(map);
+      }
+    });
+
+    // Haversine per distanza tra due coordinate
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
 
     // Legenda
     const legend = L.control({ position: "bottomright" });
-    legend.onAdd = function (map) {
+    legend.onAdd = function () {
       const div = L.DomUtil.create("div", "legend");
       const tipi = ["Trekking", "MTB", "N/D"];
       const colori = { Trekking: "green", MTB: "red", "N/D": "gray" };
