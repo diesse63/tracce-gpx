@@ -29,14 +29,14 @@
           if (traccia.Coordinate) {
             try {
               const coords = JSON.parse(traccia.Coordinate);
-              const latlngs = coords.map(c => [c.lat, c.lon]);
+              const latlngs = coords.map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
               const polyline = L.polyline(latlngs, { color: 'blue' }).addTo(map);
               polyline.bindPopup(`
-                <b>${traccia.NomeFile}</b><br>
+                <b>${traccia["Nome File"]}</b><br>
                 Tipo: ${traccia.TipoPercorso}<br>
                 Data: ${traccia.Data}<br>
-                Lunghezza: ${traccia['Lunghezza (km)']} km<br>
-                Dislivello: ${traccia['Dislivello (m)']} m<br>
+                Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
+                Dislivello: ${traccia["Dislivello (m)"]} m<br>
                 Durata: ${traccia.Durata}<br>
                 <a href="${traccia.LinkGPX}" target="_blank">Scarica GPX</a>
               `);
