@@ -42,7 +42,7 @@
       background-color: #e0f0ff;
     }
     .popup-list-item a {
-      word-break: break-all;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -132,14 +132,16 @@
           Altimetria: ${traccia.altimetria.startsWith("http") ? `<a href="${traccia.altimetria}" target="_blank">Visualizza</a>` : traccia.altimetria}
         `;
 
-        item.addEventListener('touchstart', () => {
-          resetTracce();
-          traccia.polyline.setStyle({ color: 'blue', weight: 5 });
-        });
-
         item.addEventListener('click', () => {
           resetTracce();
-          traccia.polyline.setStyle({ color: 'blue', weight: 5 });
+          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
+          traccia.polyline.bringToFront();
+        });
+
+        item.addEventListener('touchstart', () => {
+          resetTracce();
+          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
+          traccia.polyline.bringToFront();
         });
 
         container.appendChild(item);
@@ -155,7 +157,7 @@
         .setContent(container)
         .openOn(map);
 
-      map.setView(e.latlng, Math.max(map.getZoom(), 15)); // zoom automatico mobile
+      map.setView(e.latlng, Math.max(map.getZoom(), 15)); // zoom automatico su mobile
     });
 
     function resetTracce() {
