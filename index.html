@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX - Filtro Tipologia</title>
+  <title>Archivio Tracce GPX</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -24,40 +24,35 @@
     }
     .popup-fixed {
       position: fixed;
-      top: 50px;
+      top: 60px;
       right: 10px;
-      width: 150px;
-      max-height: 150px;
+      width: 90%;
+      max-width: 320px;
+      max-height: 70%;
       overflow-y: auto;
       background: white;
       border: 1px solid #ccc;
       border-radius: 5px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       z-index: 9999;
-      padding: 8px;
+      padding: 10px;
       font-family: Arial, sans-serif;
-      font-size: 12px;
+      font-size: 13px;
     }
     .popup-fixed .close-btn {
       position: absolute;
-      top: 4px;
-      right: 6px;
+      top: 6px;
+      right: 10px;
       cursor: pointer;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 16px;
       color: #333;
     }
     .popup-list-item {
       margin-top: 8px;
       border-top: 1px solid #ccc;
-      padding-top: 4px;
+      padding-top: 6px;
       cursor: pointer;
-    }
-    .popup-list-item:active {
-      background-color: #e0f0ff;
-    }
-    .popup-list-item a {
-      word-break: break-word;
     }
     #filter-container {
       position: fixed;
@@ -71,11 +66,18 @@
       font-family: Arial, sans-serif;
       font-size: 14px;
     }
+    .back-btn {
+      color: #0066cc;
+      cursor: pointer;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
   </style>
 </head>
 <body>
   <div id="filter-container">
-    <label for="filtro">Filtro: </label>
+    <label for="filtro">Filtro:</label>
     <select id="filtro">
       <option value="Tutti">Tutte</option>
       <option value="Trekking">Trekking</option>
@@ -87,7 +89,7 @@
   <div id="map"></div>
 
   <div id="popup" class="popup-fixed" style="display:none;">
-    <div class="close-btn" onclick="document.getElementById('popup').style.display='none'; resetTracce();">×</div>
+    <div class="close-btn" onclick="chiudiPopup()">×</div>
     <div id="popup-content"></div>
   </div>
 
@@ -102,6 +104,7 @@
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     let allTracce = [];
     let filteredPolylines = [];
+    let tracceVicino = [];
 
     function renderTracce(tipoFiltro) {
       filteredPolylines.forEach(p => map.removeLayer(p.polyline));
@@ -136,13 +139,16 @@
             polyline.defaultColor = colore;
 
             allTracce.push({
-              polyline,
-              coords,
+              id: traccia.ID,
+              nomeFile: traccia["Nome File"],
               tipo,
+              data: traccia.Data,
+              durata: traccia.Durata || "N/D",
               lunghezza: traccia["Lunghezza (km)"],
               dislivello: traccia["Dislivello (m)"],
-              durata: traccia.Durata || "N/D",
-              altimetria: traccia["LinkFileAltimetria"] || "N/D"
+              note: traccia.Note || "",
+              polyline,
+              coords
             });
 
             allBounds.push(...coords);
@@ -158,15 +164,16 @@
       });
 
     document.getElementById("filtro").addEventListener("change", e => {
-      document.getElementById('popup').style.display = 'none';
+      chiudiPopup();
       resetTracce();
       renderTracce(e.target.value);
     });
 
     map.on('click', function (e) {
       const raggio = 0.1;
+      chiudiPopup();
 
-      const tracceVicino = filteredPolylines
+      tracceVicino = filteredPolylines
         .map(t => ({
           ...t,
           vicino: t.coords.some(([lat, lon]) =>
@@ -175,47 +182,58 @@
         }))
         .filter(t => t.vicino);
 
-      if (tracceVicino.length === 0) {
-        document.getElementById('popup').style.display = 'none';
-        resetTracce();
-        return;
-      }
+      if (tracceVicino.length === 0) return;
 
+      mostraListaTracce(tracceVicino);
+    });
+
+    function mostraListaTracce(lista) {
       const content = document.getElementById('popup-content');
       content.innerHTML = `<b>Tracce entro 100 m:</b><br>`;
 
-      tracceVicino.forEach(traccia => {
+      lista.forEach(traccia => {
         const item = document.createElement('div');
         item.className = 'popup-list-item';
         item.innerHTML = `
           <b>${traccia.tipo}</b><br>
           Durata: ${traccia.durata}<br>
           Lunghezza: ${traccia.lunghezza} km<br>
-          Altimetria: ${traccia.altimetria.startsWith("http") ? `<a href="${traccia.altimetria}" target="_blank">Link</a>` : traccia.altimetria}
         `;
-
-        item.addEventListener('click', () => {
-          resetTracce();
-          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
-          traccia.polyline.bringToFront();
-        });
-
-        item.addEventListener('touchstart', () => {
-          resetTracce();
-          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
-          traccia.polyline.bringToFront();
-        });
-
+        item.onclick = () => mostraDettaglioTraccia(traccia);
         content.appendChild(item);
       });
 
       document.getElementById('popup').style.display = 'block';
-    });
+    }
+
+    function mostraDettaglioTraccia(traccia) {
+      resetTracce();
+      traccia.polyline.setStyle({ color: 'blue', weight: 6 });
+      traccia.polyline.bringToFront();
+
+      const content = document.getElementById('popup-content');
+      content.innerHTML = `
+        <div class="back-btn" onclick="mostraListaTracce(tracceVicino)">← Indietro</div>
+        <b>ID:</b> ${traccia.id}<br>
+        <b>Nome File:</b> ${traccia.nomeFile}<br>
+        <b>Tipo:</b> ${traccia.tipo}<br>
+        <b>Data:</b> ${traccia.data}<br>
+        <b>Durata:</b> ${traccia.durata}<br>
+        <b>Lunghezza:</b> ${traccia.lunghezza} km<br>
+        <b>Dislivello:</b> ${traccia.dislivello} m<br>
+        <b>Note:</b> ${traccia.note}<br>
+      `;
+    }
 
     function resetTracce() {
       allTracce.forEach(t => {
         t.polyline.setStyle({ color: t.polyline.defaultColor, weight: 3 });
       });
+    }
+
+    function chiudiPopup() {
+      document.getElementById('popup').style.display = 'none';
+      resetTracce();
     }
 
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
