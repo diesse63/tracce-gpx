@@ -2,11 +2,15 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX - Colori e Legenda</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archivio Tracce GPX - Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     .legend {
       background: white;
       line-height: 1.4em;
@@ -21,6 +25,24 @@
       float: left;
       margin-right: 8px;
       opacity: 0.9;
+    }
+    .popup-list-container {
+      max-height: 250px;
+      overflow-y: auto;
+      font-size: 15px;
+      padding: 4px;
+    }
+    .popup-list-item {
+      padding: 6px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+    }
+    .popup-list-item:active {
+      background-color: #e0f0ff;
+    }
+    .popup-list-item a {
+      word-break: break-all;
     }
   </style>
 </head>
@@ -37,6 +59,7 @@
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     const polylines = [];
+    let currentPopup = null;
 
     fetch(scriptURL)
       .then(res => res.json())
@@ -45,34 +68,24 @@
 
         data.forEach(traccia => {
           if (!traccia.Coordinate) return;
-
           try {
             const coords = JSON.parse(traccia.Coordinate).map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
             const colore = getColorByTipo(traccia.TipoPercorso);
-            const polyline = L.polyline(coords, { color: colore, weight: 3 }).addTo(map);
+            const polyline = L.polyline(coords, {
+              color: colore,
+              weight: 3
+            }).addTo(map);
 
-            const popupContent = `
-              Tipo: ${traccia.TipoPercorso || "N/D"}<br>
-              Lunghezza: ${traccia["Lunghezza (km)"]} km<br>
-              Dislivello: ${traccia["Dislivello (m)"]} m<br>
-              <a href="${traccia.LinkGPX}" target="_blank">Scarica GPX</a>
-            `;
-
-            polyline.bindPopup(popupContent);
-
-            polyline.on('mouseover', function () {
-              this.setStyle({ weight: 6 });
-            });
-            polyline.on('mouseout', function () {
-              this.setStyle({ weight: 3 });
-            });
+            polyline.defaultColor = colore;
 
             polylines.push({
               polyline,
               coords,
               tipo: traccia.TipoPercorso || "N/D",
               lunghezza: traccia["Lunghezza (km)"],
-              dislivello: traccia["Dislivello (m)"]
+              dislivello: traccia["Dislivello (m)"],
+              durata: traccia.Durata || "N/D",
+              altimetria: traccia["LinkFileAltimetria"] || "N/D"
             });
 
             allBounds.push(...coords);
@@ -84,52 +97,72 @@
         if (allBounds.length > 0) {
           map.fitBounds(allBounds);
         }
-      })
-      .catch(err => console.error("Errore nel recupero dati:", err));
-
-    let currentPopup = null;
-
-    map.on('click', function (e) {
-      const raggio = 0.05; // 50 metri in km
-
-      const tracceVicino = polylines.filter(t => {
-        return t.coords.some(([lat, lon]) => getDistanceFromLatLonInKm(lat, lon, e.latlng.lat, e.latlng.lng) <= raggio);
       });
 
-      if (tracceVicino.length > 0) {
-        const contenutoPopup = `
-          <b>Tracce entro 50 m:</b><br><ul style="padding-left:16px;">
-          ${tracceVicino.map(t =>
-            `<li>${t.tipo} – ${t.lunghezza} km, ${t.dislivello} m</li>`
-          ).join('')}
-          </ul>
-          <small>(Premi ESC o Indietro per chiudere)</small>
-        `;
+    map.on('click', function (e) {
+      const raggio = 0.1; // 100 metri
 
-        if (currentPopup) map.closePopup(currentPopup);
-        currentPopup = L.popup({ closeOnEscapeKey: false, closeOnClick: false })
-          .setLatLng(e.latlng)
-          .setContent(contenutoPopup)
-          .openOn(map);
+      const tracceVicino = polylines
+        .map(t => ({
+          ...t,
+          vicino: t.coords.some(([lat, lon]) =>
+            getDistanceFromLatLonInKm(lat, lon, e.latlng.lat, e.latlng.lng) <= raggio
+          )
+        }))
+        .filter(t => t.vicino);
 
-        history.pushState({ popupOpen: true }, '');
-      }
-    });
+      if (tracceVicino.length === 0) return;
 
-    document.addEventListener('keydown', function (e) {
-      if (e.key === "Escape" && currentPopup) {
-        map.closePopup(currentPopup);
-        currentPopup = null;
-        history.back();
-      }
-    });
-
-    window.addEventListener("popstate", function () {
       if (currentPopup) {
         map.closePopup(currentPopup);
         currentPopup = null;
       }
+
+      const container = document.createElement('div');
+      container.className = 'popup-list-container';
+      container.innerHTML = `<b>Tracce entro 100 m:</b><br>`;
+
+      tracceVicino.forEach(traccia => {
+        const item = document.createElement('div');
+        item.className = 'popup-list-item';
+        item.innerHTML = `
+          <b>${traccia.tipo}</b><br>
+          Durata: ${traccia.durata}<br>
+          Lunghezza: ${traccia.lunghezza} km<br>
+          Altimetria: ${traccia.altimetria.startsWith("http") ? `<a href="${traccia.altimetria}" target="_blank">Visualizza</a>` : traccia.altimetria}
+        `;
+
+        item.addEventListener('touchstart', () => {
+          resetTracce();
+          traccia.polyline.setStyle({ color: 'blue', weight: 5 });
+        });
+
+        item.addEventListener('click', () => {
+          resetTracce();
+          traccia.polyline.setStyle({ color: 'blue', weight: 5 });
+        });
+
+        container.appendChild(item);
+      });
+
+      currentPopup = L.popup({
+        closeOnClick: false,
+        closeButton: true,
+        autoClose: false,
+        maxWidth: 300
+      })
+        .setLatLng(e.latlng)
+        .setContent(container)
+        .openOn(map);
+
+      map.setView(e.latlng, Math.max(map.getZoom(), 15)); // zoom automatico mobile
     });
+
+    function resetTracce() {
+      polylines.forEach(t => {
+        t.polyline.setStyle({ color: t.polyline.defaultColor, weight: 3 });
+      });
+    }
 
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
       const R = 6371;
