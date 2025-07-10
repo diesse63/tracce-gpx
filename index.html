@@ -2,15 +2,11 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX - Popup Ridotto</title>
+  <title>Archivio Tracce GPX - Filtro Tipologia</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body, #map {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
     .legend {
       background: white;
       line-height: 1.4em;
@@ -28,7 +24,7 @@
     }
     .popup-fixed {
       position: fixed;
-      top: 10px;
+      top: 50px;
       right: 10px;
       width: 150px;
       max-height: 150px;
@@ -63,10 +59,33 @@
     .popup-list-item a {
       word-break: break-word;
     }
+    #filter-container {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10000;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
+  <div id="filter-container">
+    <label for="filtro">Filtro: </label>
+    <select id="filtro">
+      <option value="Tutti">Tutte</option>
+      <option value="Trekking">Trekking</option>
+      <option value="MTB">MTB</option>
+      <option value="N/D">Non classificate</option>
+    </select>
+  </div>
+
   <div id="map"></div>
+
   <div id="popup" class="popup-fixed" style="display:none;">
     <div class="close-btn" onclick="document.getElementById('popup').style.display='none'; resetTracce();">×</div>
     <div id="popup-content"></div>
@@ -81,7 +100,22 @@
 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
-    const polylines = [];
+    let allTracce = [];
+    let filteredPolylines = [];
+
+    function renderTracce(tipoFiltro) {
+      filteredPolylines.forEach(p => map.removeLayer(p.polyline));
+      filteredPolylines = [];
+
+      allTracce.forEach(traccia => {
+        if (tipoFiltro === "Tutti" || traccia.tipo === tipoFiltro) {
+          traccia.polyline.addTo(map);
+          filteredPolylines.push(traccia);
+        } else {
+          map.removeLayer(traccia.polyline);
+        }
+      });
+    }
 
     fetch(scriptURL)
       .then(res => res.json())
@@ -92,18 +126,19 @@
           if (!traccia.Coordinate) return;
           try {
             const coords = JSON.parse(traccia.Coordinate).map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
-            const colore = getColorByTipo(traccia.TipoPercorso);
+            const tipo = traccia.TipoPercorso || "N/D";
+            const colore = getColorByTipo(tipo);
             const polyline = L.polyline(coords, {
               color: colore,
               weight: 3
-            }).addTo(map);
+            });
 
             polyline.defaultColor = colore;
 
-            polylines.push({
+            allTracce.push({
               polyline,
               coords,
-              tipo: traccia.TipoPercorso || "N/D",
+              tipo,
               lunghezza: traccia["Lunghezza (km)"],
               dislivello: traccia["Dislivello (m)"],
               durata: traccia.Durata || "N/D",
@@ -116,15 +151,22 @@
           }
         });
 
+        renderTracce("Tutti");
         if (allBounds.length > 0) {
           map.fitBounds(allBounds);
         }
       });
 
+    document.getElementById("filtro").addEventListener("change", e => {
+      document.getElementById('popup').style.display = 'none';
+      resetTracce();
+      renderTracce(e.target.value);
+    });
+
     map.on('click', function (e) {
       const raggio = 0.1;
 
-      const tracceVicino = polylines
+      const tracceVicino = filteredPolylines
         .map(t => ({
           ...t,
           vicino: t.coords.some(([lat, lon]) =>
@@ -171,7 +213,7 @@
     });
 
     function resetTracce() {
-      polylines.forEach(t => {
+      allTracce.forEach(t => {
         t.polyline.setStyle({ color: t.polyline.defaultColor, weight: 3 });
       });
     }
