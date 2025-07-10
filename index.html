@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX - Mobile</title>
+  <title>Archivio Tracce GPX - Mobile + Popup Spostabile</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -43,6 +43,10 @@
     }
     .popup-list-item a {
       word-break: break-word;
+    }
+    .leaflet-popup.custom-popup {
+      z-index: 9999 !important;
+      cursor: move;
     }
   </style>
 </head>
@@ -100,7 +104,7 @@
       });
 
     map.on('click', function (e) {
-      const raggio = 0.1; // 100 metri
+      const raggio = 0.1;
 
       const tracceVicino = polylines
         .map(t => ({
@@ -132,18 +136,14 @@
           Altimetria: ${traccia.altimetria.startsWith("http") ? `<a href="${traccia.altimetria}" target="_blank">Visualizza</a>` : traccia.altimetria}
         `;
 
-        item.addEventListener('click', () => {
+        const evidenzia = () => {
           resetTracce();
           traccia.polyline.setStyle({ color: 'blue', weight: 6 });
           traccia.polyline.bringToFront();
-        });
+        };
 
-        item.addEventListener('touchstart', () => {
-          resetTracce();
-          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
-          traccia.polyline.bringToFront();
-        });
-
+        item.addEventListener('click', evidenzia);
+        item.addEventListener('touchstart', evidenzia);
         container.appendChild(item);
       });
 
@@ -151,13 +151,37 @@
         closeOnClick: false,
         closeButton: true,
         autoClose: false,
-        maxWidth: 300
+        maxWidth: 300,
+        className: 'custom-popup'
       })
         .setLatLng(e.latlng)
         .setContent(container)
         .openOn(map);
 
-      map.setView(e.latlng, Math.max(map.getZoom(), 15)); // zoom automatico su mobile
+      map.setView(e.latlng, Math.max(map.getZoom(), 15));
+
+      // Rendi popup spostabile
+      setTimeout(() => {
+        const popupEl = document.querySelector('.leaflet-popup');
+        if (popupEl) {
+          popupEl.style.cursor = 'move';
+          popupEl.setAttribute('draggable', 'true');
+          let offsetX, offsetY;
+
+          popupEl.addEventListener('dragstart', function (e) {
+            const rect = popupEl.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+          });
+
+          popupEl.addEventListener('dragend', function (e) {
+            popupEl.style.left = `${e.clientX - offsetX}px`;
+            popupEl.style.top = `${e.clientY - offsetY}px`;
+            popupEl.style.position = 'fixed';
+            popupEl.style.transform = 'none';
+          });
+        }
+      }, 100);
     });
 
     function resetTracce() {
