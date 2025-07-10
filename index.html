@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Archivio Tracce GPX - Mobile + Popup Spostabile</title>
+  <title>Archivio Tracce GPX - Popup fisso</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -26,16 +26,35 @@
       margin-right: 8px;
       opacity: 0.9;
     }
-    .popup-list-container {
-      max-height: 250px;
+    .popup-fixed {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 300px;
+      max-height: 300px;
       overflow-y: auto;
-      font-size: 15px;
-      padding: 4px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 9999;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    .popup-fixed .close-btn {
+      position: absolute;
+      top: 5px;
+      right: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
     }
     .popup-list-item {
-      padding: 6px;
-      margin-bottom: 4px;
-      border-bottom: 1px solid #ccc;
+      margin-top: 10px;
+      border-top: 1px solid #ccc;
+      padding-top: 6px;
       cursor: pointer;
     }
     .popup-list-item:active {
@@ -44,14 +63,14 @@
     .popup-list-item a {
       word-break: break-word;
     }
-    .leaflet-popup.custom-popup {
-      z-index: 9999 !important;
-      cursor: move;
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="popup" class="popup-fixed" style="display:none;">
+    <div class="close-btn" onclick="document.getElementById('popup').style.display='none'; resetTracce();">×</div>
+    <div id="popup-content"></div>
+  </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
@@ -63,7 +82,6 @@
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     const polylines = [];
-    let currentPopup = null;
 
     fetch(scriptURL)
       .then(res => res.json())
@@ -115,16 +133,14 @@
         }))
         .filter(t => t.vicino);
 
-      if (tracceVicino.length === 0) return;
-
-      if (currentPopup) {
-        map.closePopup(currentPopup);
-        currentPopup = null;
+      if (tracceVicino.length === 0) {
+        document.getElementById('popup').style.display = 'none';
+        resetTracce();
+        return;
       }
 
-      const container = document.createElement('div');
-      container.className = 'popup-list-container';
-      container.innerHTML = `<b>Tracce entro 100 m:</b><br>`;
+      const content = document.getElementById('popup-content');
+      content.innerHTML = `<b>Tracce entro 100 m:</b><br>`;
 
       tracceVicino.forEach(traccia => {
         const item = document.createElement('div');
@@ -136,52 +152,22 @@
           Altimetria: ${traccia.altimetria.startsWith("http") ? `<a href="${traccia.altimetria}" target="_blank">Visualizza</a>` : traccia.altimetria}
         `;
 
-        const evidenzia = () => {
+        item.addEventListener('click', () => {
           resetTracce();
           traccia.polyline.setStyle({ color: 'blue', weight: 6 });
           traccia.polyline.bringToFront();
-        };
+        });
 
-        item.addEventListener('click', evidenzia);
-        item.addEventListener('touchstart', evidenzia);
-        container.appendChild(item);
+        item.addEventListener('touchstart', () => {
+          resetTracce();
+          traccia.polyline.setStyle({ color: 'blue', weight: 6 });
+          traccia.polyline.bringToFront();
+        });
+
+        content.appendChild(item);
       });
 
-      currentPopup = L.popup({
-        closeOnClick: false,
-        closeButton: true,
-        autoClose: false,
-        maxWidth: 300,
-        className: 'custom-popup'
-      })
-        .setLatLng(e.latlng)
-        .setContent(container)
-        .openOn(map);
-
-      map.setView(e.latlng, Math.max(map.getZoom(), 15));
-
-      // Rendi popup spostabile
-      setTimeout(() => {
-        const popupEl = document.querySelector('.leaflet-popup');
-        if (popupEl) {
-          popupEl.style.cursor = 'move';
-          popupEl.setAttribute('draggable', 'true');
-          let offsetX, offsetY;
-
-          popupEl.addEventListener('dragstart', function (e) {
-            const rect = popupEl.getBoundingClientRect();
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
-          });
-
-          popupEl.addEventListener('dragend', function (e) {
-            popupEl.style.left = `${e.clientX - offsetX}px`;
-            popupEl.style.top = `${e.clientY - offsetY}px`;
-            popupEl.style.position = 'fixed';
-            popupEl.style.transform = 'none';
-          });
-        }
-      }, 100);
+      document.getElementById('popup').style.display = 'block';
     });
 
     function resetTracce() {
