@@ -73,6 +73,11 @@
       display: inline-block;
       margin-bottom: 6px;
     }
+    a.download-link {
+      color: #0077cc;
+      text-decoration: underline;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -100,7 +105,8 @@
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
+    const scriptURL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Sostituisci con il tuo URL
+
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     let allTracce = [];
     let filteredPolylines = [];
@@ -131,10 +137,7 @@
             const coords = JSON.parse(traccia.Coordinate).map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
             const tipo = traccia.TipoPercorso || "N/D";
             const colore = getColorByTipo(tipo);
-            const polyline = L.polyline(coords, {
-              color: colore,
-              weight: 3
-            });
+            const polyline = L.polyline(coords, { color: colore, weight: 3 });
 
             polyline.defaultColor = colore;
 
@@ -147,6 +150,7 @@
               lunghezza: traccia["Lunghezza (km)"] || "",
               dislivello: traccia["Dislivello (m)"] || "",
               note: traccia.Note || "",
+              link: traccia.LinkGPX || "",
               polyline,
               coords
             });
@@ -198,6 +202,7 @@
           <b>${traccia.tipo}</b><br>
           Durata: ${traccia.durata}<br>
           Lunghezza: ${traccia.lunghezza} km<br>
+          Dislivello: ${traccia.dislivello} m<br>
         `;
         item.onclick = () => mostraDettaglioTraccia(traccia);
         content.appendChild(item);
@@ -221,7 +226,8 @@
         <b>Durata:</b> ${traccia.durata}<br>
         <b>Lunghezza:</b> ${traccia.lunghezza} km<br>
         <b>Dislivello:</b> ${traccia.dislivello} m<br>
-        <b>Note:</b> ${traccia.note}<br>
+        <b>Note:</b> ${traccia.note}<br><br>
+        <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a>
       `;
     }
 
