@@ -56,7 +56,7 @@
     }
     #filter-container {
       position: fixed;
-      top: 10px;
+      bottom: 10px;
       left: 10px;
       z-index: 10000;
       background: white;
@@ -139,13 +139,13 @@
             polyline.defaultColor = colore;
 
             allTracce.push({
-              id: traccia.ID,
-              nomeFile: traccia["Nome File"],
+              id: traccia.ID || "",
+              nomeFile: traccia["Nome File"] || "",
               tipo,
-              data: traccia.Data,
+              data: traccia.Data || "",
               durata: traccia.Durata || "N/D",
-              lunghezza: traccia["Lunghezza (km)"],
-              dislivello: traccia["Dislivello (m)"],
+              lunghezza: traccia["Lunghezza (km)"] || "",
+              dislivello: traccia["Dislivello (m)"] || "",
               note: traccia.Note || "",
               polyline,
               coords
