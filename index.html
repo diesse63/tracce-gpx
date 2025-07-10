@@ -78,6 +78,16 @@
       text-decoration: underline;
       font-weight: bold;
     }
+    .whatsapp-link {
+      display: inline-block;
+      margin-top: 10px;
+      background-color: #25D366;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -105,7 +115,7 @@
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    const scriptURL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Sostituisci con il tuo URL
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzNOYHF1LkaTV6xaYs3k2l0X3y3AvyE1lYCfr8-fv9SuoJW34_03e-l-lz0Ughb17H3Ng/exec';
 
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     let allTracce = [];
@@ -174,7 +184,7 @@
     });
 
     map.on('click', function (e) {
-      const raggio = 0.1;
+      const raggio = 0.1; // 100 metri
       chiudiPopup();
 
       tracceVicino = filteredPolylines
@@ -217,6 +227,9 @@
       traccia.polyline.bringToFront();
 
       const content = document.getElementById('popup-content');
+      const whatsappText = `Traccia: ${traccia.nomeFile}\n${traccia.link}`;
+      const whatsappLink = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+
       content.innerHTML = `
         <div class="back-btn" onclick="mostraListaTracce(tracceVicino)">← Indietro</div>
         <b>ID:</b> ${traccia.id}<br>
@@ -227,7 +240,8 @@
         <b>Lunghezza:</b> ${traccia.lunghezza} km<br>
         <b>Dislivello:</b> ${traccia.dislivello} m<br>
         <b>Note:</b> ${traccia.note}<br><br>
-        <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a>
+        <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a><br>
+        <a class="whatsapp-link" href="${whatsappLink}" target="_blank">📤 Condividi su WhatsApp</a>
       `;
     }
 
