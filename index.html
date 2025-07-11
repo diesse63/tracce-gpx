@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     html, body, #map { height: 100%; margin: 0; padding: 0; }
+
     .legend {
       background: white;
       line-height: 1.4em;
@@ -15,6 +16,7 @@
       box-shadow: 0 0 15px rgba(0,0,0,0.2);
       border-radius: 5px;
     }
+
     .legend i {
       width: 16px;
       height: 16px;
@@ -22,9 +24,10 @@
       margin-right: 8px;
       opacity: 0.9;
     }
+
     .popup-fixed {
       position: fixed;
-      top: 60px;
+      top: 10px;
       right: 10px;
       width: 45%;
       max-width: 200px;
@@ -39,13 +42,16 @@
       font-family: Arial, sans-serif;
       font-size: 13px;
     }
+
     @media (max-width: 600px) {
       .popup-fixed {
-        width: 80%;
-        right: 10%;
-        left: 10%;
+        width: 90%;
+        right: 5px;
+        left: auto;
+        top: 10px;
       }
     }
+
     .popup-fixed .close-btn {
       position: absolute;
       top: 6px;
@@ -55,12 +61,14 @@
       font-size: 16px;
       color: #333;
     }
+
     .popup-list-item {
       margin-top: 8px;
       border-top: 1px solid #ccc;
       padding-top: 6px;
       cursor: pointer;
     }
+
     #filter-container {
       position: fixed;
       bottom: 10px;
@@ -73,6 +81,7 @@
       font-family: Arial, sans-serif;
       font-size: 14px;
     }
+
     .back-btn {
       color: #0066cc;
       cursor: pointer;
@@ -80,11 +89,13 @@
       display: inline-block;
       margin-bottom: 6px;
     }
+
     a.download-link {
       color: #0077cc;
       text-decoration: underline;
       font-weight: bold;
     }
+
     .whatsapp-link {
       display: inline-block;
       margin-top: 10px;
