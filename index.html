@@ -26,8 +26,8 @@
       position: fixed;
       top: 60px;
       right: 10px;
-      width: 90%;
-      max-width: 320px;
+      width: 45%;
+      max-width: 200px;
       max-height: 70%;
       overflow-y: auto;
       background: white;
@@ -38,6 +38,13 @@
       padding: 10px;
       font-family: Arial, sans-serif;
       font-size: 13px;
+    }
+    @media (max-width: 600px) {
+      .popup-fixed {
+        width: 80%;
+        right: 10%;
+        left: 10%;
+      }
     }
     .popup-fixed .close-btn {
       position: absolute;
@@ -184,7 +191,7 @@
     });
 
     map.on('click', function (e) {
-      const raggio = 0.1; // 100 metri
+      const raggio = 0.1;
       chiudiPopup();
 
       tracceVicino = filteredPolylines
