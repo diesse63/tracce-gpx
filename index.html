@@ -30,7 +30,7 @@
       top: 10px;
       right: 10px;
       width: 45%;
-      max-width: 200px;
+      max-width: 300px;
       max-height: 70%;
       overflow-y: auto;
       background: white;
@@ -88,6 +88,10 @@
       cursor: pointer;
     }
 
+    .popup-list-item:hover {
+      background: #f0f0f0;
+    }
+
     #filter-container {
       position: fixed;
       bottom: 10px;
@@ -132,9 +136,20 @@
       flex-grow: 1;
     }
 
-    /* Quando minimizzato, nasconde il contenuto */
-    .minimized #popup-content {
+    /* Dettagli nascosti di default */
+    .details {
+      margin-top: 6px;
+      padding: 6px;
+      background: #fafafa;
+      border: 1px solid #ddd;
       display: none;
+      font-size: 12px;
+      line-height: 1.3em;
+    }
+
+    /* Evidenzia traccia attiva */
+    .highlighted {
+      background-color: #d0ebff;
     }
   </style>
 </head>
@@ -154,7 +169,6 @@
   <div id="popup" class="popup-fixed" style="display:none;">
     <div class="popup-header" id="popupHeader">
       <span class="title-text">Tracce vicine</span>
-      <button id="minimizeBtn" title="Minimizza">−</button>
       <button class="close-btn" title="Chiudi" onclick="chiudiPopup()">×</button>
     </div>
     <div id="popup-content"></div>
@@ -173,6 +187,7 @@
     let allTracce = [];
     let filteredPolylines = [];
     let tracceVicino = [];
+    let tracciaEvidenziata = null;
 
     function renderTracce(tipoFiltro) {
       filteredPolylines.forEach(p => map.removeLayer(p.polyline));
@@ -251,7 +266,6 @@
       if (tracceVicino.length === 0) return;
 
       mostraListaTracce(tracceVicino);
-      if (popup.classList.contains('minimized')) toggleMinimize(); // apre se minimizzato
     });
 
     function mostraListaTracce(lista) {
@@ -261,41 +275,70 @@
       lista.forEach(traccia => {
         const item = document.createElement('div');
         item.className = 'popup-list-item';
+        item.dataset.id = traccia.id;
+
         item.innerHTML = `
           <b>${traccia.tipo}</b><br>
           Durata: ${traccia.durata}<br>
           Lunghezza: ${traccia.lunghezza} km<br>
           Dislivello: ${traccia.dislivello} m<br>
+          <button class="toggle-details-btn" style="margin-top:6px;">Dettagli</button>
+          <div class="details">
+            <b>ID:</b> ${traccia.id}<br>
+            <b>Nome File:</b> ${traccia.nomeFile}<br>
+            <b>Data:</b> ${traccia.data}<br>
+            <b>Note:</b> ${traccia.note}<br>
+            <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a><br>
+          </div>
         `;
-        item.onclick = () => mostraDettaglioTraccia(traccia);
+
+        const btn = item.querySelector('.toggle-details-btn');
+        const detailsDiv = item.querySelector('.details');
+
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation(); // non attiva click su item
+          const isVisible = detailsDiv.style.display === 'block';
+
+          // Nasconde dettagli per tutte le altre tracce e reset evidenziazione
+          document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
+          resetTracce();
+          tracciaEvidenziata = null;
+          document.querySelectorAll('.popup-list-item').forEach(el => el.classList.remove('highlighted'));
+
+          if (!isVisible) {
+            detailsDiv.style.display = 'block';
+            evidenziaTraccia(traccia.id);
+            item.classList.add('highlighted');
+          } else {
+            detailsDiv.style.display = 'none';
+          }
+        });
+
+        item.addEventListener('click', () => {
+          // Evidenzia solo traccia
+          resetTracce();
+          tracciaEvidenziata = traccia.id;
+          evidenziaTraccia(traccia.id);
+          document.querySelectorAll('.popup-list-item').forEach(el => el.classList.remove('highlighted'));
+          item.classList.add('highlighted');
+
+          // Nasconde dettagli tutte tracce tranne quella eventualmente aperta
+          document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
+        });
+
         content.appendChild(item);
       });
 
-      popup.style.display = 'flex';
+      document.getElementById('popup').style.display = 'flex';
     }
 
-    function mostraDettaglioTraccia(traccia) {
+    function evidenziaTraccia(id) {
       resetTracce();
-      traccia.polyline.setStyle({ color: 'blue', weight: 6 });
-      traccia.polyline.bringToFront();
-
-      const content = document.getElementById('popup-content');
-      const whatsappText = `Traccia: ${traccia.nomeFile}\n${traccia.link}`;
-      const whatsappLink = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-
-      content.innerHTML = `
-        <div class="back-btn" onclick="mostraListaTracce(tracceVicino)">← Indietro</div>
-        <b>ID:</b> ${traccia.id}<br>
-        <b>Nome File:</b> ${traccia.nomeFile}<br>
-        <b>Tipo:</b> ${traccia.tipo}<br>
-        <b>Data:</b> ${traccia.data}<br>
-        <b>Durata:</b> ${traccia.durata}<br>
-        <b>Lunghezza:</b> ${traccia.lunghezza} km<br>
-        <b>Dislivello:</b> ${traccia.dislivello} m<br>
-        <b>Note:</b> ${traccia.note}<br><br>
-        <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a><br>
-        <a class="whatsapp-link" href="${whatsappLink}" target="_blank">📤 Condividi su WhatsApp</a>
-      `;
+      const traccia = allTracce.find(t => t.id === id);
+      if (traccia) {
+        traccia.polyline.setStyle({ color: 'blue', weight: 6 });
+        traccia.polyline.bringToFront();
+      }
     }
 
     function resetTracce() {
@@ -377,21 +420,6 @@
         document.removeEventListener('touchend', dragEnd);
       }
     })();
-
-    // Minimizza / Massimizza popup
-    const minimizeBtn = document.getElementById('minimizeBtn');
-    minimizeBtn.addEventListener('click', toggleMinimize);
-
-    function toggleMinimize() {
-      popup.classList.toggle('minimized');
-      if (popup.classList.contains('minimized')) {
-        minimizeBtn.textContent = '+';
-        minimizeBtn.title = "Massimizza";
-      } else {
-        minimizeBtn.textContent = '−';
-        minimizeBtn.title = "Minimizza";
-      }
-    }
   </script>
 </body>
 </html>
