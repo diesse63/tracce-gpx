@@ -8,180 +8,42 @@
   <style>
     html, body, #map { height: 100%; margin: 0; padding: 0; }
 
-    .legend {
-      background: white;
-      line-height: 1.4em;
-      padding: 6px 8px;
-      font: 14px Arial, sans-serif;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      border-radius: 5px;
-    }
-
-    .legend i {
-      width: 16px;
-      height: 16px;
-      float: left;
-      margin-right: 8px;
-      opacity: 0.9;
-    }
-
-    .popup-fixed {
+    /* ✅ Messaggio iniziale di caricamento */
+    .loading-overlay {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      width: 45%;
-      max-width: 300px;
-      max-height: 70%;
-      overflow-y: auto;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      z-index: 9999;
-      font-family: Arial, sans-serif;
-      font-size: 13px;
-      display: flex;
-      flex-direction: column;
-      transition: width 0.3s ease;
-    }
-
-    /* Su mobile riduciamo la larghezza del 30% (da 90% a ~63%) */
-    @media (max-width: 600px) {
-      .popup-fixed {
-        width: 63%;
-        right: 5px;
-        left: auto;
-        top: 10px;
-      }
-    }
-
-    .popup-header {
-      cursor: move;
-      font-weight: bold;
-      margin-bottom: 8px;
-      padding: 6px 10px;
-      background-color: #eee;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-      position: relative;
-    }
-
-    .popup-header .title-text {
-      flex-grow: 1;
-    }
-
-    .popup-header button {
-      background: none;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-      color: #333;
-      padding: 0 6px;
-      user-select: none;
-    }
-
-    .popup-list-item {
-      margin-top: 8px;
-      border-top: 1px solid #ccc;
-      padding-top: 6px;
-      cursor: pointer;
-    }
-
-    .popup-list-item:hover {
-      background: #f0f0f0;
-    }
-
-    #filter-container {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
       z-index: 10000;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       font-family: Arial, sans-serif;
-      font-size: 14px;
-    }
-
-    .back-btn {
-      color: #0066cc;
-      cursor: pointer;
+      font-size: 18px;
       font-weight: bold;
-      display: inline-block;
-      margin-bottom: 6px;
+      color: #333;
     }
 
-    a.download-link {
-      color: #0077cc;
-      text-decoration: underline;
-      font-weight: bold;
-    }
-
-    .whatsapp-link {
-      display: inline-block;
-      margin-top: 10px;
-      background-color: #25D366;
-      color: white;
-      padding: 6px 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    #popup-content {
-      padding: 10px;
-      overflow-y: auto;
-      flex-grow: 1;
-    }
-
-    /* Dettagli nascosti di default */
-    .details {
-      margin-top: 6px;
-      padding: 6px;
-      background: #fafafa;
-      border: 1px solid #ddd;
-      display: none;
-      font-size: 12px;
-      line-height: 1.3em;
-    }
-
-    /* Evidenzia traccia attiva */
-    .highlighted {
-      background-color: #d0ebff;
-    }
-
-    /* Minimizzato: nasconde contenuto */
-    .minimized #popup-content {
-      display: none;
-    }
+    /* Aggiungi gli altri stili già presenti nel tuo progetto qui */
+    /* ... (popup, legenda, filtro, ecc.) ... */
   </style>
 </head>
 <body>
-  <div id="filter-container">
-    <label for="filtro">Filtro:</label>
-    <select id="filtro">
-      <option value="Tutti">Tutte</option>
-      <option value="Trekking">Trekking</option>
-      <option value="MTB">MTB</option>
-      <option value="N/D">Non classificate</option>
-    </select>
+
+  <!-- ✅ Messaggio di caricamento -->
+  <div id="loading" class="loading-overlay">
+    <div class="loading-message">Caricamento tracce in corso... attendere</div>
   </div>
 
+  <!-- ✅ Mappa -->
   <div id="map"></div>
 
-  <div id="popup" class="popup-fixed" style="display:none;">
-    <div class="popup-header" id="popupHeader">
-      <span class="title-text">Tracce vicine</span>
-      <button id="minimizeBtn" title="Minimizza">−</button>
-      <button class="close-btn" title="Chiudi" onclick="chiudiPopup()">×</button>
-    </div>
-    <div id="popup-content"></div>
-  </div>
+  <!-- ✅ Filtro, popup, ecc. -->
+  <!-- Inserisci qui il tuo codice popup, filtro tracce, legenda, ecc. -->
 
+  <!-- ✅ Libreria Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const map = L.map('map').setView([43.0, 11.0], 7);
@@ -193,23 +55,6 @@
 
     const getColorByTipo = tipo => tipo === 'Trekking' ? 'green' : tipo === 'MTB' ? 'red' : 'gray';
     let allTracce = [];
-    let filteredPolylines = [];
-    let tracceVicino = [];
-    let tracciaEvidenziata = null;
-
-    function renderTracce(tipoFiltro) {
-      filteredPolylines.forEach(p => map.removeLayer(p.polyline));
-      filteredPolylines = [];
-
-      allTracce.forEach(traccia => {
-        if (tipoFiltro === "Tutti" || traccia.tipo === tipoFiltro) {
-          traccia.polyline.addTo(map);
-          filteredPolylines.push(traccia);
-        } else {
-          map.removeLayer(traccia.polyline);
-        }
-      });
-    }
 
     fetch(scriptURL)
       .then(res => res.json())
@@ -224,21 +69,8 @@
             const colore = getColorByTipo(tipo);
             const polyline = L.polyline(coords, { color: colore, weight: 3 });
 
-            polyline.defaultColor = colore;
-
-            allTracce.push({
-              id: traccia.ID || "",
-              nomeFile: traccia["Nome File"] || "",
-              tipo,
-              data: traccia.Data || "",
-              durata: traccia.Durata || "N/D",
-              lunghezza: traccia["Lunghezza (km)"] || "",
-              dislivello: traccia["Dislivello (m)"] || "",
-              note: traccia.Note || "",
-              link: traccia.LinkGPX || "",
-              polyline,
-              coords
-            });
+            polyline.addTo(map);
+            allTracce.push({ ...traccia, coords, polyline });
 
             allBounds.push(...coords);
           } catch (e) {
@@ -246,187 +78,17 @@
           }
         });
 
-        renderTracce("Tutti");
         if (allBounds.length > 0) {
           map.fitBounds(allBounds);
         }
+
+        // ✅ Nasconde il messaggio di caricamento
+        document.getElementById("loading").style.display = "none";
+      })
+      .catch(err => {
+        console.error("Errore nel caricamento:", err);
+        document.getElementById("loading").textContent = "Errore nel caricamento delle tracce.";
       });
-
-    document.getElementById("filtro").addEventListener("change", e => {
-      chiudiPopup();
-      resetTracce();
-      renderTracce(e.target.value);
-    });
-
-    map.on('click', function (e) {
-      const raggio = 0.1;
-      chiudiPopup();
-
-      tracceVicino = filteredPolylines
-        .map(t => ({
-          ...t,
-          vicino: t.coords.some(([lat, lon]) =>
-            getDistanceFromLatLonInKm(lat, lon, e.latlng.lat, e.latlng.lng) <= raggio
-          )
-        }))
-        .filter(t => t.vicino);
-
-      if (tracceVicino.length === 0) return;
-
-      mostraListaTracce(tracceVicino);
-      if (popup.classList.contains('minimized')) toggleMinimize(); // apre se minimizzato
-    });
-
-    function mostraListaTracce(lista) {
-      const content = document.getElementById('popup-content');
-      content.innerHTML = `<b>Tracce entro 100 m:</b><br>`;
-
-      lista.forEach(traccia => {
-        const item = document.createElement('div');
-        item.className = 'popup-list-item';
-        item.dataset.id = traccia.id;
-
-        item.innerHTML = `
-          <b>${traccia.tipo}</b><br>
-          Durata: ${traccia.durata}<br>
-          Lunghezza: ${traccia.lunghezza} km<br>
-          Dislivello: ${traccia.dislivello} m<br>
-          <button class="toggle-details-btn" style="margin-top:6px;">Dettagli</button>
-          <div class="details">
-            <b>ID:</b> ${traccia.id}<br>
-            <b>Nome File:</b> ${traccia.nomeFile}<br>
-            <b>Data:</b> ${traccia.data}<br>
-            <b>Note:</b> ${traccia.note}<br>
-            <a class="download-link" href="${traccia.link}" target="_blank">📁 Scarica file GPX</a><br>
-          </div>
-        `;
-
-        const btn = item.querySelector('.toggle-details-btn');
-        const detailsDiv = item.querySelector('.details');
-
-        btn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          const isVisible = detailsDiv.style.display === 'block';
-
-          document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
-          resetTracce();
-          tracciaEvidenziata = null;
-          document.querySelectorAll('.popup-list-item').forEach(el => el.classList.remove('highlighted'));
-
-          if (!isVisible) {
-            detailsDiv.style.display = 'block';
-            evidenziaTraccia(traccia.id);
-            item.classList.add('highlighted');
-          } else {
-            detailsDiv.style.display = 'none';
-          }
-        });
-
-        item.addEventListener('click', () => {
-          resetTracce();
-          tracciaEvidenziata = traccia.id;
-          evidenziaTraccia(traccia.id);
-          document.querySelectorAll('.popup-list-item').forEach(el => el.classList.remove('highlighted'));
-          item.classList.add('highlighted');
-          document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
-        });
-
-        content.appendChild(item);
-      });
-
-      document.getElementById('popup').style.display = 'flex';
-    }
-
-    function evidenziaTraccia(id) {
-      resetTracce();
-      const traccia = allTracce.find(t => t.id === id);
-      if (traccia) {
-        traccia.polyline.setStyle({ color: 'blue', weight: 6 });
-        traccia.polyline.bringToFront();
-      }
-    }
-
-    function resetTracce() {
-      allTracce.forEach(t => {
-        t.polyline.setStyle({ color: t.polyline.defaultColor, weight: 3 });
-      });
-    }
-
-    function chiudiPopup() {
-      popup.style.display = 'none';
-      resetTracce();
-    }
-
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    const popup = document.getElementById('popup');
-    const minimizeBtn = document.getElementById('minimizeBtn');
-
-    minimizeBtn.addEventListener('click', toggleMinimize);
-
-    function toggleMinimize() {
-      popup.classList.toggle('minimized');
-      if (popup.classList.contains('minimized')) {
-        minimizeBtn.textContent = '+';
-        minimizeBtn.title = "Massimizza";
-      } else {
-        minimizeBtn.textContent = '−';
-        minimizeBtn.title = "Minimizza";
-      }
-    }
-
-    // Trascinamento del popup
-    (function enableDragPopup() {
-      const header = document.getElementById('popupHeader');
-      let offsetX = 0, offsetY = 0, startX = 0, startY = 0;
-
-      header.addEventListener('mousedown', dragStart);
-      header.addEventListener('touchstart', dragStart, { passive: false });
-
-      function dragStart(e) {
-        e.preventDefault();
-        if (e.type === 'mousedown') {
-          startX = e.clientX;
-          startY = e.clientY;
-          document.addEventListener('mousemove', dragMove);
-          document.addEventListener('mouseup', dragEnd);
-        } else {
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-          document.addEventListener('touchmove', dragMove, { passive: false });
-          document.addEventListener('touchend', dragEnd);
-        }
-        const rect = popup.getBoundingClientRect();
-        offsetX = startX - rect.left;
-        offsetY = startY - rect.top;
-      }
-
-      function dragMove(e) {
-        e.preventDefault();
-        let clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
-        let clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
-        popup.style.top = (clientY - offsetY) + 'px';
-        popup.style.left = (clientX - offsetX) + 'px';
-        popup.style.right = 'auto';
-      }
-
-      function dragEnd() {
-        document.removeEventListener('mousemove', dragMove);
-        document.removeEventListener('mouseup', dragEnd);
-        document.removeEventListener('touchmove', dragMove);
-        document.removeEventListener('touchend', dragEnd);
-      }
-    })();
   </script>
 </body>
 </html>
