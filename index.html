@@ -42,11 +42,13 @@
       font-size: 13px;
       display: flex;
       flex-direction: column;
+      transition: width 0.3s ease;
     }
 
+    /* Su mobile riduciamo la larghezza del 30% (da 90% a ~63%) */
     @media (max-width: 600px) {
       .popup-fixed {
-        width: 90%;
+        width: 63%;
         right: 5px;
         left: auto;
         top: 10px;
@@ -151,6 +153,11 @@
     .highlighted {
       background-color: #d0ebff;
     }
+
+    /* Minimizzato: nasconde contenuto */
+    .minimized #popup-content {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -169,6 +176,7 @@
   <div id="popup" class="popup-fixed" style="display:none;">
     <div class="popup-header" id="popupHeader">
       <span class="title-text">Tracce vicine</span>
+      <button id="minimizeBtn" title="Minimizza">−</button>
       <button class="close-btn" title="Chiudi" onclick="chiudiPopup()">×</button>
     </div>
     <div id="popup-content"></div>
@@ -266,6 +274,7 @@
       if (tracceVicino.length === 0) return;
 
       mostraListaTracce(tracceVicino);
+      if (popup.classList.contains('minimized')) toggleMinimize(); // apre se minimizzato
     });
 
     function mostraListaTracce(lista) {
@@ -296,10 +305,9 @@
         const detailsDiv = item.querySelector('.details');
 
         btn.addEventListener('click', (ev) => {
-          ev.stopPropagation(); // non attiva click su item
+          ev.stopPropagation();
           const isVisible = detailsDiv.style.display === 'block';
 
-          // Nasconde dettagli per tutte le altre tracce e reset evidenziazione
           document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
           resetTracce();
           tracciaEvidenziata = null;
@@ -315,14 +323,11 @@
         });
 
         item.addEventListener('click', () => {
-          // Evidenzia solo traccia
           resetTracce();
           tracciaEvidenziata = traccia.id;
           evidenziaTraccia(traccia.id);
           document.querySelectorAll('.popup-list-item').forEach(el => el.classList.remove('highlighted'));
           item.classList.add('highlighted');
-
-          // Nasconde dettagli tutte tracce tranne quella eventualmente aperta
           document.querySelectorAll('.popup-list-item .details').forEach(d => d.style.display = 'none');
         });
 
@@ -365,18 +370,20 @@
     }
 
     const popup = document.getElementById('popup');
+    const minimizeBtn = document.getElementById('minimizeBtn');
 
-    const legend = L.control({ position: "bottomright" });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create("div", "legend");
-      const tipi = ["Trekking", "MTB", "N/D"];
-      const colori = { Trekking: "green", MTB: "red", "N/D": "gray" };
-      tipi.forEach(tipo => {
-        div.innerHTML += `<i style="background:${colori[tipo]};"></i> ${tipo}<br>`;
-      });
-      return div;
-    };
-    legend.addTo(map);
+    minimizeBtn.addEventListener('click', toggleMinimize);
+
+    function toggleMinimize() {
+      popup.classList.toggle('minimized');
+      if (popup.classList.contains('minimized')) {
+        minimizeBtn.textContent = '+';
+        minimizeBtn.title = "Massimizza";
+      } else {
+        minimizeBtn.textContent = '−';
+        minimizeBtn.title = "Minimizza";
+      }
+    }
 
     // Trascinamento del popup
     (function enableDragPopup() {
