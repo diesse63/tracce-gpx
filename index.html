@@ -43,9 +43,10 @@
 
     @media (max-width: 600px) {
       .popup-fixed {
-        width: 63%;
+        width: 90%;
         right: 5px;
-        left: auto;
+        left: 5px;
+        top: 10px;
       }
     }
 
@@ -60,17 +61,6 @@
       justify-content: space-between;
       align-items: center;
       user-select: none;
-      position: relative;
-    }
-
-    .popup-header::after {
-      content: "(trascina per spostare)";
-      font-weight: normal;
-      font-size: 11px;
-      color: #666;
-      position: absolute;
-      bottom: -16px;
-      left: 10px;
     }
 
     .popup-header .title-text {
@@ -84,7 +74,6 @@
       cursor: pointer;
       color: #333;
       padding: 0 6px;
-      user-select: none;
     }
 
     #popup-content {
@@ -113,6 +102,12 @@
       margin-top: 6px;
     }
 
+    .altimetria-container {
+      margin-top: 8px;
+      width: 100%;
+      height: 200px;
+    }
+
     .download-link {
       color: #0077cc;
       text-decoration: underline;
@@ -137,7 +132,6 @@
   <div id="popup" class="popup-fixed" style="display:none;">
     <div class="popup-header" id="popupHeader">
       <span class="title-text">Tracce vicine</span>
-      <button id="minimizeBtn" title="Minimizza">−</button>
       <button class="close-btn" title="Chiudi" onclick="chiudiPopup()">×</button>
     </div>
     <div id="popup-content"></div>
@@ -202,67 +196,73 @@
             <b>Note:</b> ${traccia.Note || ''}<br>
             <a class="download-link" href="${traccia.LinkGPX}" target="_blank">📁 Scarica GPX</a><br>
             <a class="whatsapp-link" href="https://wa.me/?text=${encodeURIComponent(traccia.LinkGPX)}" target="_blank">Condividi su WhatsApp</a><br>
-            <button class="altimetria-btn">Altimetria</button>
-            <canvas id="${chartId}" class="altimetria-canvas" style="width:100%; height:150px; display:none;"></canvas>
+            <div class="altimetria-container">
+              <canvas id="${chartId}"></canvas>
+            </div>
           </div>
         `;
 
         const btn = item.querySelector('.toggle-details-btn');
         const details = item.querySelector('.details');
-        const altimetriaBtn = item.querySelector('.altimetria-btn');
         const canvas = item.querySelector('canvas');
 
         btn.addEventListener('click', () => {
           const show = details.style.display !== 'block';
           document.querySelectorAll('.details').forEach(d => d.style.display = 'none');
           details.style.display = show ? 'block' : 'none';
-        });
 
-        altimetriaBtn.addEventListener('click', () => {
-          if (!traccia.Altimetria || !traccia.coords || traccia.coords.length === 0) {
-            alert("Nessun dato altimetrico disponibile");
-            return;
-          }
-          try {
-            const quote = JSON.parse(traccia.Altimetria).map(n => parseFloat(n));
-            const distanza = [0];
-            for (let i = 1; i < traccia.coords.length; i++) {
-              const d = getDistance(traccia.coords[i - 1][0], traccia.coords[i - 1][1], traccia.coords[i][0], traccia.coords[i][1]);
-              distanza.push(distanza[i - 1] + d);
-            }
-
-            canvas.style.display = 'block';
-            new Chart(canvas.getContext('2d'), {
-              type: 'line',
-              data: {
-                labels: distanza.map(d => d.toFixed(2)), // km
-                datasets: [{
-                  data: quote,
-                  borderColor: 'blue',
-                  backgroundColor: 'rgba(0,123,255,0.1)',
-                  pointRadius: 0,
-                  borderWidth: 2,
-                  tension: 0.2
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  x: {
-                    title: { display: true, text: 'Distanza (km)' }
-                  },
-                  y: {
-                    title: { display: true, text: 'Altitudine (m)' },
-                    beginAtZero: false
-                  }
-                },
-                plugins: { legend: { display: false } }
+          if (show && traccia.Altimetria && canvas.dataset.initialized !== "true") {
+            try {
+              const quote = JSON.parse(traccia.Altimetria).map(n => parseFloat(n));
+              const distanza = [0];
+              for (let i = 1; i < traccia.coords.length; i++) {
+                const d = getDistance(
+                  traccia.coords[i - 1][0], traccia.coords[i - 1][1],
+                  traccia.coords[i][0], traccia.coords[i][1]
+                );
+                distanza.push(distanza[i - 1] + d);
               }
-            });
-          } catch (e) {
-            alert("Errore nel parsing dei dati altimetrici");
-            console.error(e);
+
+              new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                  labels: distanza.map(d => d.toFixed(2)),
+                  datasets: [{
+                    data: quote,
+                    borderColor: 'blue',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    pointRadius: 0,
+                    borderWidth: 2,
+                    tension: 0.3
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    x: {
+                      title: {
+                        display: true,
+                        text: 'Distanza (km)'
+                      }
+                    },
+                    y: {
+                      title: {
+                        display: true,
+                        text: 'Altitudine (m)'
+                      }
+                    }
+                  },
+                  plugins: {
+                    legend: { display: false }
+                  }
+                }
+              });
+
+              canvas.dataset.initialized = "true";
+            } catch (e) {
+              console.error("Errore nel grafico altimetrico:", e);
+            }
           }
         });
 
@@ -287,52 +287,12 @@
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      const a = Math.sin(dLat / 2) ** 2 +
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                Math.sin(dLon / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
-
-    document.getElementById('minimizeBtn').addEventListener('click', () => {
-      const popup = document.getElementById('popup');
-      popup.classList.toggle('minimized');
-      document.getElementById('minimizeBtn').textContent = popup.classList.contains('minimized') ? '+' : '−';
-    });
-
-    // Drag
-    (() => {
-      const popup = document.getElementById('popup');
-      const header = document.getElementById('popupHeader');
-      let startX, startY, offsetX, offsetY;
-
-      header.addEventListener('mousedown', dragStart);
-      header.addEventListener('touchstart', dragStart);
-
-      function dragStart(e) {
-        e.preventDefault();
-        const touch = e.touches ? e.touches[0] : e;
-        startX = touch.clientX;
-        startY = touch.clientY;
-        const rect = popup.getBoundingClientRect();
-        offsetX = startX - rect.left;
-        offsetY = startY - rect.top;
-        document.addEventListener(e.touches ? 'touchmove' : 'mousemove', dragMove);
-        document.addEventListener(e.touches ? 'touchend' : 'mouseup', dragEnd);
-      }
-
-      function dragMove(e) {
-        const touch = e.touches ? e.touches[0] : e;
-        popup.style.top = (touch.clientY - offsetY) + 'px';
-        popup.style.left = (touch.clientX - offsetX) + 'px';
-        popup.style.right = 'auto';
-      }
-
-      function dragEnd(e) {
-        document.removeEventListener(e.touches ? 'touchmove' : 'mousemove', dragMove);
-        document.removeEventListener(e.touches ? 'touchend' : 'mouseup', dragEnd);
-      }
-    })();
   </script>
 </body>
 </html>
