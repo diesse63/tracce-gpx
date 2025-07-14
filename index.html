@@ -5,6 +5,7 @@
   <title>Archivio Tracce GPX</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     html, body, #map { height: 100%; margin: 0; padding: 0; }
 
@@ -168,7 +169,7 @@
       .then(res => res.json())
       .then(data => {
         document.getElementById("loading").style.display = "none";
-        data.forEach(traccia => {
+        data.forEach((traccia, index) => {
           if (!traccia.Coordinate) return;
           try {
             const coords = JSON.parse(traccia.Coordinate).map(c => Array.isArray(c) ? c : [c.lat, c.lon]);
@@ -200,9 +201,11 @@
 
       if (vicine.length === 0) return;
 
-      vicine.forEach(traccia => {
+      vicine.forEach((traccia, index) => {
         const item = document.createElement('div');
         item.className = 'popup-list-item';
+        const chartId = `chart-${index}`;
+
         item.innerHTML = `
           <b>${traccia.TipoPercorso || 'N/D'}</b><br>
           Durata: ${traccia.Durata || 'N/D'}<br>
@@ -213,16 +216,77 @@
             <b>Data:</b> ${traccia.Data || ''}<br>
             <b>Note:</b> ${traccia.Note || ''}<br>
             <a class="download-link" href="${traccia.LinkGPX}" target="_blank">📁 Scarica GPX</a><br>
-            <a class="whatsapp-link" href="https://wa.me/?text=${encodeURIComponent(traccia.LinkGPX)}" target="_blank">Condividi su WhatsApp</a>
-          </div>`;
+            <a class="whatsapp-link" href="https://wa.me/?text=${encodeURIComponent(traccia.LinkGPX)}" target="_blank">Condividi su WhatsApp</a><br>
+            <button class="altimetria-btn">Altimetria</button>
+            <div class="altimetria-info" style="margin-top:5px; font-size:12px;"></div>
+            <canvas id="${chartId}" class="altimetria-canvas" style="width:100%; height:120px; display:none;"></canvas>
+          </div>
+        `;
 
         const btn = item.querySelector('.toggle-details-btn');
         const details = item.querySelector('.details');
+        const altimetriaBtn = item.querySelector('.altimetria-btn');
+        const canvas = item.querySelector('canvas');
+        const infoBox = item.querySelector('.altimetria-info');
 
         btn.addEventListener('click', () => {
           const show = details.style.display !== 'block';
           document.querySelectorAll('.details').forEach(d => d.style.display = 'none');
           details.style.display = show ? 'block' : 'none';
+        });
+
+        altimetriaBtn.addEventListener('click', () => {
+          if (!traccia.Altimetria) return alert("Nessun dato altimetrico disponibile");
+          try {
+            const dati = JSON.parse(traccia.Altimetria).map(n => parseFloat(n));
+            canvas.style.display = 'block';
+
+            const quotaMin = Math.min(...dati);
+            const quotaMax = Math.max(...dati);
+            let salita = 0, discesa = 0;
+            for (let i = 1; i < dati.length; i++) {
+              const diff = dati[i] - dati[i - 1];
+              if (diff > 0) salita += diff;
+              else discesa -= diff;
+            }
+
+            infoBox.innerHTML = `
+              Quota min: ${quotaMin.toFixed(0)} m<br>
+              Quota max: ${quotaMax.toFixed(0)} m<br>
+              Salita tot: ${salita.toFixed(0)} m<br>
+              Discesa tot: ${discesa.toFixed(0)} m
+            `;
+
+            new Chart(canvas.getContext('2d'), {
+              type: 'line',
+              data: {
+                labels: dati.map((_, i) => i + 1),
+                datasets: [{
+                  label: 'Altitudine (m)',
+                  data: dati,
+                  borderColor: 'blue',
+                  backgroundColor: 'rgba(0,123,255,0.1)',
+                  pointRadius: 0,
+                  borderWidth: 2,
+                  tension: 0.2
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: { display: false },
+                  y: { beginAtZero: false }
+                },
+                plugins: {
+                  legend: { display: false }
+                }
+              }
+            });
+          } catch (e) {
+            alert("Errore nel parsing dei dati altimetrici");
+            console.error(e);
+          }
         });
 
         item.addEventListener('click', () => {
