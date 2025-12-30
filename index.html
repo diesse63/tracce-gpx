@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Tracce GPX - diesse63</title>
-    
-    <!-- Leaflet CSS per la mappa -->
+    <title>Mappa Dinamica Tracce - diesse63</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         #map { height: 100vh; width: 100%; }
         #menu {
             position: absolute; top: 10px; left: 10px; z-index: 1000;
@@ -16,171 +14,125 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.3); width: 280px;
             max-height: 90vh; overflow-y: auto;
         }
-        h3 { margin-top: 0; color: #2c3e50; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
-        .track-item { 
-            border-bottom: 1px solid #eee; padding: 10px 0; font-size: 13px; 
-        }
-        .track-item:last-child { border-bottom: none; }
-        .track-item strong { color: #e67e22; display: block; margin-bottom: 3px; font-size: 14px; }
-        .track-info { color: #34495e; line-height: 1.4; }
+        h3 { margin: 0 0 10px 0; font-size: 18px; border-bottom: 2px solid #3498db; }
+        .track-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 13px; cursor: pointer; }
+        .track-item:hover { background: #f9f9f9; }
+        .track-item strong { color: #2980b9; display: block; }
         button { 
-            cursor: pointer; margin-top: 8px; width: 100%; 
-            padding: 8px; border: none; border-radius: 4px;
-            background: #3498db; color: white; font-weight: bold; transition: 0.2s;
+            cursor: pointer; margin-top: 5px; width: 100%; padding: 5px;
+            background: #27ae60; color: white; border: none; border-radius: 4px;
         }
-        button:hover { background: #2980b9; }
-        button.download { background: #27ae60; margin-top: 5px; }
-        button.download:hover { background: #219150; }
-        #status { font-size: 12px; color: #7f8c8d; font-style: italic; margin-bottom: 10px; }
+        #status { font-size: 11px; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <h3>Esplora Tracce</h3>
-        <p id="status">Clicca sulla mappa per cercare tracce nel raggio di 500m</p>
-        <div id="lista-tracce"></div>
-    </div>
+<div id="menu">
+    <h3>Tracce in questa zona</h3>
+    <p id="status">Sposta la mappa per caricare le tracce</p>
+    <div id="lista-tracce"></div>
+</div>
 
-    <div id="map"></div>
+<div id="map"></div>
 
-    <!-- Librerie: Supabase e Leaflet -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-        // 1. CONFIGURAZIONE SUPABASE
-        // Usiamo 'supabaseClient' per evitare conflitti con l'oggetto globale della libreria
-        const SUPABASE_URL = 'https://afdbrcywdooycvipzovs.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+    const SUPABASE_URL = 'https://afdbrcywdooycvipzovs.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 2. INIZIALIZZAZIONE MAPPA (Centrata sulla zona Maremma/Grosseto)
-        const map = L.map('map').setView([42.85, 10.95], 11);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    const map = L.map('map').setView([42.85, 10.95], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let tracciaAttuale = null;
-        let markerRicerca = null;
+    let layerGroup = L.layerGroup().addTo(map); // Contiene tutte le tracce visibili
+    let tracciaSelezionata = null; // La traccia evidenziata
+    let idsCaricati = new Set(); // Per non duplicare le tracce
 
-        // 3. FUNZIONE CLICK SULLA MAPPA
-        map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            
-            // Gestione Marker di ricerca
-            if (markerRicerca) map.removeLayer(markerRicerca);
-            markerRicerca = L.circleMarker([lat, lng], { radius: 8, color: '#3498db', fillOpacity: 0.5 }).addTo(map);
+    // 1. CARICAMENTO TRACCE NELL'AREA VISIBILE
+    async function caricaTracceInVista() {
+        const bounds = map.getBounds();
+        document.getElementById('status').innerText = "🔄 Aggiornamento tracce...";
 
-            document.getElementById('status').innerText = "🔍 Ricerca tracce vicine...";
-            
-            // Esegue la funzione RPC creata su Supabase
-            const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', {
-                click_lat: lat,
-                click_lon: lng,
-                raggio_metri: 500
-            });
-
-            if (error) {
-                console.error("Errore Supabase:", error);
-                document.getElementById('status').innerText = "❌ Errore nella ricerca.";
-                return;
-            }
-
-            mostraRisultati(data);
+        const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
+            min_lat: bounds.getSouth(),
+            min_lon: bounds.getWest(),
+            max_lat: bounds.getNorth(),
+            max_lon: bounds.getEast()
         });
 
-        // 4. MOSTRA RISULTATI NEL MENU
-        function mostraRisultati(tracce) {
-            const lista = document.getElementById('lista-tracce');
-            const status = document.getElementById('status');
-            lista.innerHTML = "";
-
-            if (!tracce || tracce.length === 0) {
-                status.innerText = "Nessuna traccia trovata in questo punto.";
-                return;
-            }
-
-            status.innerText = `✅ Trovate ${tracce.length} tracce:`;
-
-            tracce.forEach(t => {
-                const div = document.createElement('div');
-                div.className = 'track-item';
-                div.innerHTML = `
-                    <strong>${t.nome_file}</strong>
-                    <div class="track-info">
-                        🚲 ${t.tipo_percorso || 'MTB'} - 📏 ${t.lunghezza || '?'} km<br>
-                        📍 Distanza dal click: ${t.distanza_metri.toFixed(0)}m
-                    </div>
-                    <button onclick="caricaEVisualizza(${t.id})">👁️ Vedi su Mappa</button>
-                    <button class="download" onclick="esportaGPX(${t.id}, '${t.nome_file}')">💾 Scarica GPX</button>
-                `;
-                lista.appendChild(div);
-            });
+        if (error) {
+            console.error(error);
+            return;
         }
 
-        // 5. CARICA E DISEGNA LA LINEA SULLA MAPPA
-        async function caricaEVisualizza(id) {
-            const { data, error } = await supabaseClient
-                .from('Tracce')
-                .select('CoordLight')
-                .eq('id', id)
-                .single();
+        const lista = document.getElementById('lista-tracce');
+        lista.innerHTML = "";
+        
+        data.forEach(t => {
+            // Aggiungi alla lista laterale
+            const div = document.createElement('div');
+            div.className = 'track-item';
+            div.innerHTML = `<strong>${t.nome_file}</strong> ${t.tipo_percorso} - ${t.lunghezza}km
+                             <button onclick="evidenziaTraccia(${t.id})">💾 Scarica GPX</button>`;
+            div.onclick = () => evidenziaTraccia(t.id);
+            lista.appendChild(div);
 
-            if (error || !data) {
-                alert("Errore nel caricamento della traccia");
-                return;
-            }
-
-            if (tracciaAttuale) map.removeLayer(tracciaAttuale);
-
-            try {
-                const punti = JSON.parse(data.CoordLight);
-                tracciaAttuale = L.polyline(punti, {
-                    color: '#e67e22', 
-                    weight: 5,
-                    opacity: 0.8
-                }).addTo(map);
-
-                map.fitBounds(tracciaAttuale.getBounds(), { padding: [30, 30] });
-            } catch (e) {
-                console.error("Errore parsing coordinate:", e);
-                alert("Dati coordinate non validi.");
-            }
-        }
-
-        // 6. ESPORTAZIONE GPX (Standard Garmin)
-        async function esportaGPX(id, nome) {
-            const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
-            if (!data) return;
-            
-            try {
-                const punti = JSON.parse(data.CoordLight);
-                let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TracceGPX-diesse63" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <name>${nome}</name>
-    <trkseg>`;
+            // Se la traccia non è ancora sulla mappa, disegnala (leggera)
+            if (!idsCaricati.has(t.id)) {
+                const punti = JSON.parse(t.coord_light);
+                const poly = L.polyline(punti, {
+                    color: '#95a5a6', 
+                    weight: 2, 
+                    opacity: 0.5,
+                    id: t.id // custom id
+                }).addTo(layerGroup);
                 
-                punti.forEach(p => {
-                    gpx += `\n      <trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
+                poly.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    evidenziaTraccia(t.id);
                 });
-
-                gpx += `\n    </trkseg>\n  </trk>\n</gpx>`;
-
-                const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${nome.replace(/\s+/g, '_')}.gpx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            } catch (e) {
-                alert("Errore nella generazione del file GPX");
+                
+                idsCaricati.add(t.id);
             }
+        });
+
+        document.getElementById('status').innerText = `Visualizzando ${data.length} tracce`;
+    }
+
+    // 2. EVIDENZIA TRACCIA SELEZIONATA
+    function evidenziaTraccia(id) {
+        layerGroup.eachLayer(layer => {
+            if (layer.options.id === id) {
+                if (tracciaSelezionata) {
+                    tracciaSelezionata.setStyle({ color: '#95a5a6', weight: 2, opacity: 0.5 });
+                }
+                layer.setStyle({ color: '#e67e22', weight: 6, opacity: 1 });
+                layer.bringToFront();
+                tracciaSelezionata = layer;
+                map.fitBounds(layer.getBounds(), {padding: [30,30]});
+            }
+        });
+    }
+
+    // 3. RICERCA PUNTUALE AL CLICK (500m)
+    map.on('click', async (e) => {
+        const { lat, lng } = e.latlng;
+        const { data } = await supabaseClient.rpc('cerca_tracce_vicine', {
+            click_lat: lat, click_lon: lng, raggio_metri: 500
+        });
+
+        if (data && data.length > 0) {
+            evidenziaTraccia(data[0].id); // Evidenzia la più vicina
+            alert("Traccia trovata: " + data[0].nome_file);
         }
-    </script>
+    });
+
+    // EVENTI MAPPA
+    map.on('moveend', caricaTracceInVista); // Ricarica quando sposti o zoomi
+    caricaTracceInVista(); // Caricamento iniziale
+
+</script>
 </body>
 </html>
