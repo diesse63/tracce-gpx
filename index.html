@@ -9,94 +9,56 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
-        /* Menu Orizzontale in Basso */
         #menu {
-            position: absolute; 
-            bottom: 10px; 
-            left: 10px; 
-            right: 10px;
-            z-index: 1000;
-            background: white; 
-            border-radius: 10px; 
-            box-shadow: 0 -2px 15px rgba(0,0,0,0.2); 
-            display: none;
-            flex-direction: column; 
-            border: 1px solid #ccc;
+            position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000;
+            background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
+            display: none; flex-direction: column; border: 1px solid #ccc;
         }
 
         .menu-header { 
-            background: #2c3e50; color: white; padding: 4px 12px; 
+            background: #2c3e50; color: white; padding: 5px 12px; 
             display: flex; justify-content: space-between; align-items: center; 
         }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Contenitore a scorrimento laterale */
+        /* CAROSELLO: Un record alla volta */
         #lista-tracce { 
-            display: flex;
-            overflow-x: auto; 
-            scroll-snap-type: x mandatory;
-            background: #f1f3f5;
-            padding: 5px;
-            gap: 8px;
-            -webkit-overflow-scrolling: touch;
+            display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+            background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch;
         }
 
-        /* Card monorigato / singola vista */
         .track-card { 
-            flex: 0 0 260px; /* Larghezza fissa per ogni traccia */
-            scroll-snap-align: start;
-            background: white; 
-            padding: 8px; 
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-            border-left: 3px solid #3498db;
-            cursor: pointer;
+            flex: 0 0 100%; /* UN RECORD PER VOLTA */
+            scroll-snap-align: center;
+            box-sizing: border-box;
+            background: white; padding: 10px 15px; 
+            border-bottom: 4px solid transparent; transition: 0.3s;
         }
 
-        .track-header { margin-bottom: 3px; }
-        .track-date { color: #2c3e50; font-size: 13px; font-weight: bold; }
-        .track-time { font-size: 10px; color: #7f8c8d; margin-left: 4px; }
+        .track-header { margin-bottom: 5px; }
+        .track-date { color: #2c3e50; font-size: 15px; font-weight: bold; }
+        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
         
         .stats-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 2px 8px; 
-            border-top: 1px solid #eee;
-            padding-top: 4px;
-            margin-bottom: 4px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; 
+            border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px;
         }
-        .stat-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #444; }
-        .stat-icon { font-size: 12px; width: 14px; text-align: center; }
+        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; }
+        .stat-icon { font-size: 14px; width: 18px; text-align: center; }
 
-        /* Riga finale: Nome file + Bottone ridotto */
         .file-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 5px;
-            border-top: 1px dotted #ccc;
-            padding-top: 4px;
-            margin-top: 2px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; border-top: 1px dotted #ccc; padding-top: 6px;
         }
-        .file-name { 
-            font-size: 10px; color: #666; 
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            flex-grow: 1;
-        }
+        .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 
         .btn-mini-gpx { 
-            background: #27ae60; color: white; border: none; 
-            padding: 2px 6px; border-radius: 3px; 
-            font-weight: bold; cursor: pointer;
-            font-size: 9px; white-space: nowrap;
-            display: flex; align-items: center; gap: 3px;
+            background: #27ae60; color: white; border: none; padding: 4px 10px; border-radius: 4px; 
+            font-weight: bold; cursor: pointer; font-size: 10px; display: flex; align-items: center; gap: 4px;
         }
         
-        .close-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
-        
-        /* Nascondi scrollbar per estetica */
-        #lista-tracce::-webkit-scrollbar { height: 4px; }
-        #lista-tracce::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        #lista-tracce::-webkit-scrollbar { display: none; } /* Nascondi scrollbar per pulizia */
     </style>
 </head>
 <body>
@@ -122,12 +84,15 @@
 
     const map = L.map('map', { zoomControl: false }).setView([42.85, 10.95], 13);
     L.control.zoom({ position: 'topright' }).addTo(map);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let tracceLayer = L.layerGroup().addTo(map);
     let cacheVisualizzata = {};
     let markerRicerca = null;
+    let currentHighlightedId = null;
+
+    const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
+    const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
 
     function formattaDataOra(unix) {
         if (!unix) return { data: "N.D.", ora: "" };
@@ -137,6 +102,16 @@
             ora: d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
         };
     }
+
+    // Intersection Observer per rilevare quale card è visibile
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('data-id');
+                evidenziaSullaMappa(id);
+            }
+        });
+    }, { threshold: 0.6, container: document.getElementById('lista-tracce') });
 
     async function caricaArea() {
         const b = map.getBounds();
@@ -148,16 +123,13 @@
         data.forEach(t => {
             if (!cacheVisualizzata[t.id]) {
                 const geo = JSON.parse(t.geojson);
-                const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), {
-                    color: '#3498db', weight: 3, opacity: 0.4
-                }).addTo(tracceLayer);
-                
+                const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), stileDefault).addTo(tracceLayer);
+                cacheVisualizzata[t.id] = poly;
                 poly.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
-                    map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+                    const card = document.querySelector(`.track-card[data-id="${t.id}"]`);
+                    if(card) card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 });
-                
-                cacheVisualizzata[t.id] = poly;
             }
         });
     }
@@ -188,30 +160,33 @@
             
             const card = document.createElement('div');
             card.className = 'track-card';
+            card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header">
-                    <span class="track-date">📅 ${info.data} <span class="track-time">${info.ora}</span></span>
-                </div>
+                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
                 <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || '...'}</div>
+                    <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
                     <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0}m</div>
                     <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--'}</div>
                 </div>
                 <div class="file-row">
-                    <span class="file-name" title="${t.nome_file}">📄 ${t.nome_file}</span>
+                    <span class="file-name">📄 ${t.nome_file}</span>
                     <button class="btn-mini-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
                 </div>
             `;
-
-            card.onclick = (e) => {
-                if(e.target.tagName !== 'BUTTON') {
-                    if (cacheVisualizzata[t.id]) map.fitBounds(cacheVisualizzata[t.id].getBounds());
-                }
-            };
-            
             lista.appendChild(card);
+            observer.observe(card);
         });
+    }
+
+    function evidenziaSullaMappa(id) {
+        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
+            cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
+        }
+        currentHighlightedId = id;
+        if (cacheVisualizzata[id]) {
+            cacheVisualizzata[id].setStyle(stileAttivo).bringToFront();
+        }
     }
 
     async function scarica(id, nome) {
@@ -229,6 +204,5 @@
     map.on('moveend', caricaArea);
     caricaArea();
 </script>
-
 </body>
 </html>
