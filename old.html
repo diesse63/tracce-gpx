@@ -3,33 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracce GPX - Modern Version</title>
+    <title>Tracce GPX - diesse63</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        #map { height: 100vh; width: 100%; background: #e0e0e0; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        #map { height: 100vh; width: 100%; background: #f0f0f0; }
+        
         #menu {
             position: absolute; top: 15px; left: 15px; z-index: 1000;
-            background: white; border-radius: 12px; width: 300px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: none;
+            background: white; border-radius: 12px; width: 340px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3); display: none;
             flex-direction: column; overflow: hidden;
         }
-        .menu-header { background: #3498db; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        h3 { margin: 0; font-size: 15px; }
-        #lista-tracce { overflow-y: auto; max-height: 70vh; padding: 5px; }
-        .track-item { border-bottom: 1px dotted #ccc; padding: 10px; cursor: pointer; transition: 0.2s; }
-        .track-item:hover { background: #f0f7ff; }
-        .track-item strong { display: block; color: #2c3e50; font-size: 14px; }
-        .track-info { font-size: 11px; color: #7f8c8d; margin-top: 4px; }
-        .btn-gpx { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 4px; width: 100%; margin-top: 8px; font-weight: bold; cursor: pointer; }
-        .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+
+        .menu-header { background: #2c3e50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .menu-header h3 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+
+        #lista-tracce { 
+            overflow-y: auto; 
+            max-height: 520px; /* Altezza ottimizzata per visualizzare circa 3 tracce */
+            background: #f8f9fa;
+        }
+
+        .track-card { 
+            background: white; margin: 12px; padding: 15px; border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee;
+            cursor: pointer; transition: 0.3s;
+        }
+        .track-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); border-color: #3498db; }
+        
+        .track-date { color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        
+        /* Griglia dati aggiornata per 5-6 icone */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #444; }
+        .stat-icon { font-size: 16px; width: 22px; text-align: center; }
+
+        .btn-gpx { 
+            background: #27ae60; color: white; border: none; padding: 10px; 
+            border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-gpx:hover { background: #219150; }
+        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
     </style>
 </head>
 <body>
 
 <div id="menu">
     <div class="menu-header">
-        <h3>Risultati Ricerca</h3>
+        <h3 id="count-label">RILEVATE 0 TRACCE</h3>
         <button class="close-btn" onclick="document.getElementById('menu').style.display='none'">×</button>
     </div>
     <div id="lista-tracce"></div>
@@ -41,13 +65,14 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Inizializzazione moderna senza riferimenti deprecati
     const supabaseClient = supabase.createClient(
         'https://afdbrcywdooycvipzovs.supabase.co',
         'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn'
     );
 
-    const map = L.map('map').setView([42.85, 10.95], 13);
+    const map = L.map('map', { zoomControl: false }).setView([42.85, 10.95], 13);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(map);
@@ -56,39 +81,35 @@
     let cacheVisualizzata = {};
     let markerRicerca = null;
 
-    // Funzione principale caricamento area
+    function formattaData(unix) {
+        if (!unix) return "Data N.D.";
+        const d = new Date(unix * 1000);
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
     async function caricaArea() {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
             min_lat: b.getSouth(), min_lon: b.getWest(),
             max_lat: b.getNorth(), max_lon: b.getEast()
         });
-
         if (error) return;
-
         data.forEach(t => {
             if (!cacheVisualizzata[t.id]) {
                 const geo = JSON.parse(t.geojson);
                 const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), {
                     color: '#3498db', weight: 3, opacity: 0.4
                 }).addTo(tracceLayer);
-                
-                poly.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    eseguiRicerca(e.latlng.lat, e.latlng.lng);
-                });
-                
                 cacheVisualizzata[t.id] = poly;
             }
         });
     }
 
-    // Ricerca 500m al click
     map.on('click', e => eseguiRicerca(e.latlng.lat, e.latlng.lng));
 
     async function eseguiRicerca(lat, lng) {
         if (markerRicerca) map.removeLayer(markerRicerca);
-        markerRicerca = L.circleMarker([lat, lng], { radius: 6, color: 'red' }).addTo(map);
+        markerRicerca = L.circleMarker([lat, lng], { radius: 6, color: '#e74c3c', fillOpacity: 0.8 }).addTo(map);
 
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', {
             click_lat: lat, click_lon: lng, raggio_metri: 500
@@ -99,21 +120,36 @@
             return;
         }
 
+        document.getElementById('count-label').innerText = `RILEVATE ${data.length} TRACCE`;
         const lista = document.getElementById('lista-tracce');
         lista.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
 
         data.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'track-item';
-            item.innerHTML = `
-                <strong>${t.nome_file}</strong>
-                <div class="track-info">Tipo: ${t.tipo_percorso} | Lunga: ${t.lunghezza}km</div>
-                <button class="btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">SCARICA GPX</button>
+            const dataLeggibile = formattaData(t.data_unix);
+            const iconaTipo = (t.tipo_percorso || '').toUpperCase().includes('MTB') ? '🚵' : '🥾';
+            
+            const card = document.createElement('div');
+            card.className = 'track-card';
+            card.innerHTML = `
+                <div class="track-date">📅 ${dataLeggibile}</div>
+                <div class="stats-grid">
+                    <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'Percorso'}</div>
+                    <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza} km</div>
+                    <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0} m</div>
+                    <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--:--'}</div>
+                    <div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div>
+                </div>
+                <button class="btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 SCARICA GPX</button>
             `;
-            item.onmouseenter = () => cacheVisualizzata[t.id]?.setStyle({ color: '#e67e22', weight: 8, opacity: 1 });
-            item.onmouseleave = () => cacheVisualizzata[t.id]?.setStyle({ color: '#3498db', weight: 3, opacity: 0.4 });
-            lista.appendChild(item);
+
+            card.onmouseenter = () => cacheVisualizzata[t.id]?.setStyle({ color: '#e67e22', weight: 8, opacity: 1 });
+            card.onmouseleave = () => cacheVisualizzata[t.id]?.setStyle({ color: '#3498db', weight: 3, opacity: 0.4 });
+            card.onclick = (e) => {
+                if(e.target.tagName !== 'BUTTON') map.fitBounds(cacheVisualizzata[t.id].getBounds());
+            };
+            
+            lista.appendChild(card);
         });
     }
 

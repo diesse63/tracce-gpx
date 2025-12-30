@@ -6,47 +6,83 @@
     <title>Tracce GPX - diesse63</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-        #map { height: 100vh; width: 100%; background: #f0f0f0; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
+        /* Menu Responsivo */
         #menu {
-            position: absolute; top: 15px; left: 15px; z-index: 1000;
-            background: white; border-radius: 12px; width: 340px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3); display: none;
-            flex-direction: column; overflow: hidden;
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            z-index: 1000;
+            background: white; 
+            border-radius: 12px; 
+            width: 360px;
+            max-width: calc(100% - 20px); /* Ottimizzazione mobile */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+            display: none;
+            flex-direction: column; 
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        .menu-header { background: #2c3e50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-header h3 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        /* Stile per schermi piccoli (Smartphone) */
+        @media (max-width: 600px) {
+            #menu {
+                left: 10px;
+                right: 10px;
+                width: auto;
+                max-height: 70vh;
+            }
+            .track-date { font-size: 16px !important; }
+            .stat-item { font-size: 12px !important; }
+        }
+
+        .menu-header { background: #2c3e50; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .menu-header h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
 
         #lista-tracce { 
             overflow-y: auto; 
-            max-height: 520px; /* Altezza ottimizzata per visualizzare circa 3 tracce */
-            background: #f8f9fa;
+            max-height: 550px; 
+            background: #f1f3f5;
+            padding-bottom: 10px;
         }
 
         .track-card { 
-            background: white; margin: 12px; padding: 15px; border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee;
-            cursor: pointer; transition: 0.3s;
-        }
-        .track-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); border-color: #3498db; }
-        
-        .track-date { color: #2c3e50; font-size: 18px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        
-        /* Griglia dati aggiornata per 5-6 icone */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #444; }
-        .stat-icon { font-size: 16px; width: 22px; text-align: center; }
-
-        .btn-gpx { 
-            background: #27ae60; color: white; border: none; padding: 10px; 
-            border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: white; 
+            margin: 10px; 
+            padding: 15px; 
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+            border-left: 5px solid #3498db;
+            cursor: pointer; 
             transition: 0.2s;
         }
+        .track-card:hover { border-left-color: #e67e22; background: #fffdfb; }
+        
+        .track-header { margin-bottom: 10px; }
+        .track-date { color: #2c3e50; font-size: 18px; font-weight: bold; display: block; }
+        .track-time { font-size: 13px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
+        
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            margin-bottom: 15px;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 10px;
+        }
+        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stat-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+
+        .btn-gpx { 
+            background: #27ae60; color: white; border: none; padding: 12px; 
+            border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 14px;
+        }
         .btn-gpx:hover { background: #219150; }
-        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
+        .close-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; line-height: 1; }
     </style>
 </head>
 <body>
@@ -70,21 +106,24 @@
         'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn'
     );
 
+    // Inizializzazione mappa con zoom control in basso a destra per non intralciare il menu
     const map = L.map('map', { zoomControl: false }).setView([42.85, 10.95], 13);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let tracceLayer = L.layerGroup().addTo(map);
     let cacheVisualizzata = {};
     let markerRicerca = null;
 
-    function formattaData(unix) {
-        if (!unix) return "Data N.D.";
+    // Formatta data e ora separatamente
+    function formattaDataOra(unix) {
+        if (!unix) return { data: "N.D.", ora: "" };
         const d = new Date(unix * 1000);
-        return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return {
+            data: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            ora: d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        };
     }
 
     async function caricaArea() {
@@ -126,19 +165,23 @@
         document.getElementById('menu').style.display = 'flex';
 
         data.forEach(t => {
-            const dataLeggibile = formattaData(t.data_unix);
+            const info = formattaDataOra(t.data_unix);
             const iconaTipo = (t.tipo_percorso || '').toUpperCase().includes('MTB') ? '🚵' : '🥾';
             
             const card = document.createElement('div');
             card.className = 'track-card';
             card.innerHTML = `
-                <div class="track-date">📅 ${dataLeggibile}</div>
+                <div class="track-header">
+                    <span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'Percorso'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza} km</div>
                     <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0} m</div>
                     <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--:--'}</div>
-                    <div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div>
+                    <div class="stat-item" style="grid-column: span 2;" title="${t.nome_file}">
+                        <span class="stat-icon">📄</span> ${t.nome_file}
+                    </div>
                 </div>
                 <button class="btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 SCARICA GPX</button>
             `;
@@ -146,7 +189,9 @@
             card.onmouseenter = () => cacheVisualizzata[t.id]?.setStyle({ color: '#e67e22', weight: 8, opacity: 1 });
             card.onmouseleave = () => cacheVisualizzata[t.id]?.setStyle({ color: '#3498db', weight: 3, opacity: 0.4 });
             card.onclick = (e) => {
-                if(e.target.tagName !== 'BUTTON') map.fitBounds(cacheVisualizzata[t.id].getBounds());
+                if(e.target.tagName !== 'BUTTON') {
+                    map.fitBounds(cacheVisualizzata[t.id].getBounds(), { padding: [20, 20] });
+                }
             };
             
             lista.appendChild(card);
