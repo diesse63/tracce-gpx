@@ -6,7 +6,7 @@
     <title>Tracce GPX - diesse63</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
         #menu {
@@ -16,12 +16,12 @@
         }
 
         .menu-header { 
-            background: #2c3e50; color: white; padding: 5px 12px; 
+            background: #2c3e50; color: white; padding: 6px 15px; 
             display: flex; justify-content: space-between; align-items: center; 
         }
-        .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* CAROSELLO: Un record alla volta */
+        /* CAROSELLO: Orizzontale, un record alla volta */
         #lista-tracce { 
             display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
             background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch;
@@ -29,36 +29,35 @@
 
         .track-card { 
             flex: 0 0 100%; /* UN RECORD PER VOLTA */
-            scroll-snap-align: center;
+            scroll-snap-align: start;
             box-sizing: border-box;
-            background: white; padding: 10px 15px; 
-            border-bottom: 4px solid transparent; transition: 0.3s;
+            background: white; padding: 12px 18px; 
         }
 
-        .track-header { margin-bottom: 5px; }
+        .track-header { margin-bottom: 6px; }
         .track-date { color: #2c3e50; font-size: 15px; font-weight: bold; }
-        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
+        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 6px; }
         
         .stats-grid { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; 
-            border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; 
+            border-top: 1px solid #eee; padding-top: 8px; margin-bottom: 8px;
         }
         .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; }
-        .stat-icon { font-size: 14px; width: 18px; text-align: center; }
+        .stat-icon { font-size: 14px; width: 20px; text-align: center; }
 
         .file-row {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 10px; border-top: 1px dotted #ccc; padding-top: 6px;
+            gap: 12px; border-top: 1px dotted #ccc; padding-top: 8px;
         }
         .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 
         .btn-mini-gpx { 
-            background: #27ae60; color: white; border: none; padding: 4px 10px; border-radius: 4px; 
+            background: #27ae60; color: white; border: none; padding: 5px 12px; border-radius: 4px; 
             font-weight: bold; cursor: pointer; font-size: 10px; display: flex; align-items: center; gap: 4px;
         }
         
         .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        #lista-tracce::-webkit-scrollbar { display: none; } /* Nascondi scrollbar per pulizia */
+        #lista-tracce::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -90,6 +89,7 @@
     let cacheVisualizzata = {};
     let markerRicerca = null;
     let currentHighlightedId = null;
+    let totalTracce = 0;
 
     const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
     const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
@@ -103,15 +103,20 @@
         };
     }
 
-    // Intersection Observer per rilevare quale card è visibile
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const id = entry.target.getAttribute('data-id');
-                evidenziaSullaMappa(id);
+    // Gestione scorrimento per aggiornare contatore e mappa
+    const listaTracce = document.getElementById('lista-tracce');
+    let scrollTimeout;
+    listaTracce.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            const index = Math.round(listaTracce.scrollLeft / listaTracce.offsetWidth);
+            const card = listaTracce.children[index];
+            if (card) {
+                const id = card.getAttribute('data-id');
+                aggiornaVistaTraccia(id, index + 1);
             }
-        });
-    }, { threshold: 0.6, container: document.getElementById('lista-tracce') });
+        }, 100);
+    });
 
     async function caricaArea() {
         const b = map.getBounds();
@@ -127,8 +132,7 @@
                 cacheVisualizzata[t.id] = poly;
                 poly.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
-                    const card = document.querySelector(`.track-card[data-id="${t.id}"]`);
-                    if(card) card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+                    eseguiRicerca(e.latlng.lat, e.latlng.lng);
                 });
             }
         });
@@ -149,9 +153,8 @@
             return;
         }
 
-        document.getElementById('count-label').innerText = `${data.length} TRACCE`;
-        const lista = document.getElementById('lista-tracce');
-        lista.innerHTML = "";
+        totalTracce = data.length;
+        listaTracce.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
 
         data.forEach(t => {
@@ -162,7 +165,9 @@
             card.className = 'track-card';
             card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
+                <div class="track-header">
+                    <span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
@@ -174,18 +179,32 @@
                     <button class="btn-mini-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
                 </div>
             `;
-            lista.appendChild(card);
-            observer.observe(card);
+            listaTracce.appendChild(card);
         });
+
+        // Avvio: attiva la prima traccia
+        listaTracce.scrollLeft = 0;
+        aggiornaVistaTraccia(data[0].id, 1);
     }
 
-    function evidenziaSullaMappa(id) {
+    function aggiornaVistaTraccia(id, currentX) {
+        // 1. Aggiorna Titolo
+        document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${totalTracce}`;
+
+        // 2. Evidenzia sulla mappa
         if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
             cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
         }
         currentHighlightedId = id;
-        if (cacheVisualizzata[id]) {
-            cacheVisualizzata[id].setStyle(stileAttivo).bringToFront();
+        const poly = cacheVisualizzata[id];
+        if (poly) {
+            poly.setStyle(stileAttivo).bringToFront();
+            
+            // 3. Centra la traccia con area di rispetto per il menu (padding in basso)
+            map.fitBounds(poly.getBounds(), {
+                paddingTopLeft: [20, 20],
+                paddingBottomRight: [20, 180] // Spazio extra per non coprire col menu
+            });
         }
     }
 
