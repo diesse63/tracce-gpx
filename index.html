@@ -8,39 +8,49 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
         #map { height: 100vh; width: 100%; z-index: 1; }
         
-        /* Menu inizialmente nascosto */
+        /* Menu Laterale Sinistro */
         #menu {
-            position: absolute; top: 20px; left: 20px; z-index: 1000;
-            background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 280px;
-            max-height: 80vh; display: none; /* NASCOSTO DI BASE */
-            flex-direction: column;
+            position: absolute; top: 15px; left: 15px; z-index: 1000;
+            background: white; padding: 0; border-radius: 10px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.3); width: 300px;
+            max-height: 85vh; display: none; /* Nascosto finché non si clicca */
+            flex-direction: column; overflow: hidden;
         }
 
-        .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-bottom: 10px; }
-        h3 { margin: 0; color: #2c3e50; font-size: 17px; }
-        .close-btn { cursor: pointer; font-weight: bold; color: #e74c3c; font-size: 20px; border: none; background: none; }
+        .menu-header { 
+            background: #3498db; color: white; padding: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        h3 { margin: 0; font-size: 16px; }
+        .close-btn { cursor: pointer; border: none; background: none; color: white; font-size: 20px; }
         
-        #lista-tracce { overflow-y: auto; flex-grow: 1; }
-        .track-item { border-bottom: 1px solid #eee; padding: 10px 5px; cursor: pointer; }
-        .track-item:hover { background: #f8f9fa; }
-        .track-item strong { color: #2980b9; display: block; font-size: 14px; }
-        .track-info { font-size: 12px; color: #7f8c8d; margin-top: 3px; }
+        #lista-tracce { overflow-y: auto; padding: 5px; flex-grow: 1; }
+        
+        /* Elemento della lista */
+        .track-item { 
+            border-bottom: 1px solid #eee; padding: 12px; 
+            cursor: pointer; transition: background 0.2s;
+        }
+        .track-item:hover { background: #f1f8ff; border-left: 4px solid #3498db; }
+        .track-item strong { color: #2c3e50; display: block; font-size: 14px; margin-bottom: 4px; }
+        .track-info { font-size: 12px; color: #7f8c8d; }
 
         .btn-gpx { 
             cursor: pointer; background: #27ae60; color: white; border: none; 
-            border-radius: 4px; padding: 5px; width: 100%; margin-top: 8px; font-weight: bold;
+            border-radius: 4px; padding: 6px; width: 100%; margin-top: 8px; font-weight: bold;
+            font-size: 11px;
         }
+        .btn-gpx:hover { background: #219150; }
     </style>
 </head>
 <body>
 
     <div id="menu">
         <div class="menu-header">
-            <h3>Tracce trovate</h3>
+            <h3>Tracce nel raggio di 500m</h3>
             <button class="close-btn" onclick="chiudiMenu()">×</button>
         </div>
         <div id="lista-tracce"></div>
@@ -60,10 +70,13 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         let traccePresenti = {}; 
-        let tracciaSelezionata = null;
         let markerRicerca = null;
 
-        // 1. DISEGNA LE TRACCE NELL'AREA (Solo visuale, senza lista)
+        // Stili delle linee
+        const stileDefault = { color: '#3498db', weight: 3, opacity: 0.5 };
+        const stileHighlight = { color: '#e67e22', weight: 7, opacity: 1 };
+
+        // 1. CARICA TRACCE NELL'AREA (Disegna linee silenziose)
         async function aggiornaMappa() {
             const bounds = map.getBounds();
             const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
@@ -75,7 +88,7 @@
 
             const nuoviIds = new Set(data.map(t => t.id.toString()));
             
-            // Rimuovi vecchie
+            // Pulizia tracce fuori vista
             Object.keys(traccePresenti).forEach(id => {
                 if (!nuoviIds.has(id)) {
                     map.removeLayer(traccePresenti[id]);
@@ -83,28 +96,32 @@
                 }
             });
 
-            // Aggiungi nuove (linee sottili blu)
+            // Disegna nuove tracce
             data.forEach(t => {
                 if (!traccePresenti[t.id]) {
                     const geoData = JSON.parse(t.geojson);
                     const latLngs = geoData.coordinates.map(c => [c[1], c[0]]);
-                    traccePresenti[t.id] = L.polyline(latLngs, {
-                        color: '#3498db', weight: 2, opacity: 0.5
-                    }).addTo(map);
+                    const poly = L.polyline(latLngs, stileDefault).addTo(map);
+                    
+                    poly.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        avviaRicerca(e.latlng.lat, e.latlng.lng);
+                    });
+                    
+                    traccePresenti[t.id] = poly;
                 }
             });
         }
 
-        // 2. CLICK SULLA MAPPA: MOSTRA MENU SOLO SE VICINO A TRACCIA
-        map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            
-            if (markerRicerca) map.removeLayer(markerRicerca);
-            markerRicerca = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
+        // 2. AVVIA RICERCA (500 metri)
+        map.on('click', (e) => avviaRicerca(e.latlng.lat, e.latlng.lng));
 
-            // Ricerca nel raggio di 100 metri
+        async function avviaRicerca(lat, lng) {
+            if (markerRicerca) map.removeLayer(markerRicerca);
+            markerRicerca = L.circleMarker([lat, lng], { radius: 6, color: '#e74c3c' }).addTo(map);
+
             const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', {
-                click_lat: lat, click_lon: lng, raggio_metri: 100
+                click_lat: lat, click_lon: lng, raggio_metri: 500
             });
 
             if (data && data.length > 0) {
@@ -112,8 +129,9 @@
             } else {
                 chiudiMenu();
             }
-        });
+        }
 
+        // 3. MOSTRA MENU E GESTISCI EVIDENZIAMENTO AL PASSAGGIO MOUSE
         function mostraMenu(tracce) {
             const menu = document.getElementById('menu');
             const lista = document.getElementById('lista-tracce');
@@ -126,29 +144,42 @@
                 div.innerHTML = `
                     <strong>${t.nome_file}</strong>
                     <div class="track-info">🚲 ${t.tipo_percorso} - 📏 ${t.lunghezza}km</div>
-                    <button class="btn-gpx" onclick="scaricaGPX(${t.id}, '${t.nome_file}')">Scarica GPX</button>
+                    <button class="btn-gpx" onclick="scaricaGPX(${t.id}, '${t.nome_file}')">SCARICA GPX</button>
                 `;
+
+                // EVIDENZIA AL PASSAGGIO DEL MOUSE
+                div.onmouseenter = () => evidenziaTraccia(t.id, true);
+                div.onmouseleave = () => evidenziaTraccia(t.id, false);
+                
+                // ZOOM AL CLICK SULL'ELEMENTO
                 div.onclick = (e) => {
-                    if(e.target.tagName !== 'BUTTON') evidenziaTraccia(t.id);
+                    if(e.target.tagName !== 'BUTTON') {
+                        const poly = traccePresenti[t.id];
+                        if(poly) map.fitBounds(poly.getBounds(), {padding: [40, 40]});
+                    }
                 };
+
                 lista.appendChild(div);
             });
         }
 
-        function evidenziaTraccia(id) {
-            if (tracciaSelezionata) tracciaSelezionata.setStyle({ color: '#3498db', weight: 2, opacity: 0.5 });
-            
-            if (traccePresenti[id]) {
-                tracciaSelezionata = traccePresenti[id];
-                tracciaSelezionata.setStyle({ color: '#e67e22', weight: 6, opacity: 1 });
-                tracciaSelezionata.bringToFront();
-                map.fitBounds(tracciaSelezionata.getBounds(), { padding: [30, 30] });
+        function evidenziaTraccia(id, highlight) {
+            const poly = traccePresenti[id];
+            if (poly) {
+                if (highlight) {
+                    poly.setStyle(stileHighlight);
+                    poly.bringToFront();
+                } else {
+                    poly.setStyle(stileDefault);
+                }
             }
         }
 
         function chiudiMenu() {
             document.getElementById('menu').style.display = 'none';
             if (markerRicerca) map.removeLayer(markerRicerca);
+            // Ripristina tutte le tracce allo stile base
+            Object.values(traccePresenti).forEach(p => p.setStyle(stileDefault));
         }
 
         async function scaricaGPX(id, nome) {
