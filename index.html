@@ -3,28 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Tracce GPX</title>
+    <title>Mappa Tracce GPX - diesse63</title>
     
     <!-- Leaflet CSS per la mappa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #map { height: 100vh; width: 100%; }
         #menu {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            position: absolute; top: 10px; left: 10px; z-index: 1000;
             background: white; padding: 15px; border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2); max-width: 250px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3); width: 280px;
+            max-height: 90vh; overflow-y: auto;
         }
+        h3 { margin-top: 0; color: #2c3e50; font-size: 18px; }
         .track-item { 
-            border-bottom: 1px solid #eee; padding: 5px 0; font-size: 14px; 
+            border-bottom: 1px solid #eee; padding: 10px 0; font-size: 13px; 
         }
-        button { cursor: pointer; margin-top: 5px; width: 100%; }
+        .track-item:last-child { border-bottom: none; }
+        .track-item strong { color: #e67e22; display: block; margin-bottom: 3px; }
+        button { 
+            cursor: pointer; margin-top: 8px; width: 100%; 
+            padding: 6px; border: none; border-radius: 4px;
+            background: #3498db; color: white; transition: 0.2s;
+        }
+        button:hover { background: #2980b9; }
+        button.download { background: #27ae60; }
+        button.download:hover { background: #219150; }
+        #status { font-size: 12px; color: #7f8c8d; font-style: italic; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div id="menu">
-        <h3>Tracce Vicine</h3>
+        <h3>Esplora Tracce</h3>
         <p id="status">Clicca sulla mappa per cercare tracce nel raggio di 500m</p>
         <div id="lista-tracce"></div>
     </div>
@@ -36,13 +48,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. CONFIGURAZIONE SUPABASE
-        const SUPABASE_URL = 'https://tuo-progetto.supabase.co';
-        const SUPABASE_KEY = 'tua-chiave-anon-public';
+        // 1. CONFIGURAZIONE SUPABASE (TUE CREDENZIALI)
+        const SUPABASE_URL = 'https://afdbrcywdooycvipzovs.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 2. INIZIALIZZAZIONE MAPPA (Centrata sulla zona Grosseto/Maremma)
-        const map = L.map('map').setView([42.75, 11.15], 11);
+        // 2. INIZIALIZZAZIONE MAPPA
+        // Centrata sulla zona di Grosseto/Scarlino dove si trovano i dati
+        const map = L.map('map').setView([42.85, 10.95], 11);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -52,9 +65,9 @@
         // 3. FUNZIONE CLICK SULLA MAPPA
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            document.getElementById('status').innerText = "Ricerca in corso...";
+            document.getElementById('status').innerText = "🔍 Ricerca tracce vicine...";
             
-            // Chiamata alla funzione RPC creata precedentemente
+            // Chiamata alla funzione RPC cerca_tracce_vicine
             const { data, error } = await supabase.rpc('cerca_tracce_vicine', {
                 click_lat: lat,
                 click_lon: lng,
@@ -62,40 +75,46 @@
             });
 
             if (error) {
-                console.error(error);
+                console.error("Errore Supabase:", error);
+                document.getElementById('status').innerText = "❌ Errore nella ricerca.";
                 return;
             }
 
-            mostraRisultati(data);
+            mostraRisultati(data, lat, lng);
         });
 
         // 4. MOSTRA RISULTATI NEL MENU
-        function mostraRisultati(tracce) {
+        function mostraRisultati(tracce, lat, lng) {
             const lista = document.getElementById('lista-tracce');
             const status = document.getElementById('status');
             lista.innerHTML = "";
 
-            if (tracce.length === 0) {
+            // Aggiungiamo un marker temporaneo dove l'utente ha cliccato
+            L.circleMarker([lat, lng], { radius: 8, color: 'blue' }).addTo(map)
+                .bindPopup("Punto di ricerca").openPopup();
+
+            if (!tracce || tracce.length === 0) {
                 status.innerText = "Nessuna traccia trovata in questo punto.";
                 return;
             }
 
-            status.innerText = `Trovate ${tracce.length} tracce:`;
+            status.innerText = `✅ Trovate ${tracce.length} tracce:`;
 
             tracce.forEach(t => {
                 const div = document.createElement('div');
                 div.className = 'track-item';
                 div.innerHTML = `
-                    <strong>${t.nome_file}</strong><br>
-                    Tipo: ${t.tipo_percorso} - Dist: ${t.distanza_metri.toFixed(0)}m<br>
-                    <button onclick="caricaEVisualizza(${t.id})">Visualizza</button>
-                    <button onclick="esportaGPX(${t.id}, '${t.nome_file}')">Scarica GPX</button>
+                    <strong>${t.nome_file}</strong>
+                    🚲 ${t.tipo_percorso || 'Percorso'} - 📏 ${t.lunghezza} km<br>
+                    📍 Distanza: ${t.distanza_metri.toFixed(0)}m<br>
+                    <button onclick="caricaEVisualizza(${t.id})">👁️ Visualizza Mappa</button>
+                    <button class="download" onclick="esportaGPX(${t.id}, '${t.nome_file}')">💾 Scarica GPX</button>
                 `;
                 lista.appendChild(div);
             });
         }
 
-        // 5. CARICA E DISEGNA LA TRACCIA
+        // 5. CARICA E DISEGNA LA TRACCIA SULLA MAPPA
         async function caricaEVisualizza(id) {
             const { data, error } = await supabase
                 .from('Tracce')
@@ -103,36 +122,52 @@
                 .eq('id', id)
                 .single();
 
+            if (error || !data) return;
+
+            // Rimuovi la traccia precedente se presente
             if (tracciaAttuale) map.removeLayer(tracciaAttuale);
 
-            const punti = JSON.parse(data.CoordLight);
-            tracciaAttuale = L.polyline(punti, {color: 'red', weight: 4}).addTo(map);
-            map.fitBounds(tracciaAttuale.getBounds());
+            const punti = JSON.parse(data.CoordLight); // Formato [[lat, lon], ...]
+            tracciaAttuale = L.polyline(punti, {
+                color: '#e67e22', 
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+
+            // Adatta la vista della mappa alla traccia
+            map.fitBounds(tracciaAttuale.getBounds(), { padding: [50, 50] });
         }
 
-        // 6. ESPORTA IN FORMATO GPX STANDARD
+        // 6. ESPORTA IN FORMATO GPX STANDARD (Senza altimetria)
         async function esportaGPX(id, nome) {
             const { data } = await supabase.from('Tracce').select('CoordLight').eq('id', id).single();
+            if (!data) return;
+            
             const punti = JSON.parse(data.CoordLight);
 
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="TracceGPX-diesse63" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
     <name>${nome}</name>
     <trkseg>`;
             
             punti.forEach(p => {
+                // p[0] è Latitudine, p[1] è Longitudine
                 gpx += `\n      <trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
             });
 
             gpx += `\n    </trkseg>\n  </trk>\n</gpx>`;
 
+            // Download del file
             const blob = new Blob([gpx], { type: 'application/gpx+xml' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${nome.replace(/\s+/g, '_')}.gpx`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>
