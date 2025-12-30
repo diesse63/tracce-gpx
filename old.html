@@ -6,83 +6,79 @@
     <title>Tracce GPX - diesse63</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
-        /* Menu Responsivo */
+        /* Menu Posizionato in Basso */
         #menu {
             position: absolute; 
-            top: 10px; 
+            bottom: 10px; 
             left: 10px; 
+            right: 10px;
             z-index: 1000;
             background: white; 
             border-radius: 12px; 
-            width: 360px;
-            max-width: calc(100% - 20px); /* Ottimizzazione mobile */
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.2); 
             display: none;
             flex-direction: column; 
+            max-height: 45vh; /* Occupa al massimo metà schermo in altezza */
             overflow: hidden;
-            transition: all 0.3s ease;
+            border: 1px solid #ccc;
         }
 
-        /* Stile per schermi piccoli (Smartphone) */
-        @media (max-width: 600px) {
-            #menu {
-                left: 10px;
-                right: 10px;
-                width: auto;
-                max-height: 70vh;
-            }
-            .track-date { font-size: 16px !important; }
-            .stat-item { font-size: 12px !important; }
+        .menu-header { 
+            background: #2c3e50; color: white; padding: 8px 15px; 
+            display: flex; justify-content: space-between; align-items: center; 
         }
-
-        .menu-header { background: #2c3e50; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-header h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
         #lista-tracce { 
             overflow-y: auto; 
-            max-height: 550px; 
             background: #f1f3f5;
-            padding-bottom: 10px;
+            padding: 5px;
         }
 
+        /* Card più compatta e caratteri piccoli */
         .track-card { 
             background: white; 
-            margin: 10px; 
-            padding: 15px; 
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
-            border-left: 5px solid #3498db;
+            margin: 5px; 
+            padding: 10px; 
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1); 
+            border-left: 4px solid #3498db;
             cursor: pointer; 
-            transition: 0.2s;
+            transition: all 0.2s ease;
         }
-        .track-card:hover { border-left-color: #e67e22; background: #fffdfb; }
         
-        .track-header { margin-bottom: 10px; }
-        .track-date { color: #2c3e50; font-size: 18px; font-weight: bold; display: block; }
-        .track-time { font-size: 13px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
+        /* Evidenziamento traccia scelta */
+        .track-card.active {
+            border-left-color: #e67e22;
+            background: #fff5eb;
+            box-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
+        }
+
+        .track-header { margin-bottom: 5px; }
+        .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
+        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
         
         .stats-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 8px; 
-            margin-bottom: 15px;
-            border-top: 1px solid #f0f0f0;
-            padding-top: 10px;
+            gap: 5px; 
+            margin-bottom: 8px;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
         }
-        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .stat-icon { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+        .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat-icon { font-size: 13px; width: 18px; text-align: center; }
 
         .btn-gpx { 
-            background: #27ae60; color: white; border: none; padding: 12px; 
-            border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            font-size: 14px;
+            background: #27ae60; color: white; border: none; padding: 8px; 
+            border-radius: 5px; width: 100%; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            font-size: 12px;
         }
-        .btn-gpx:hover { background: #219150; }
-        .close-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; line-height: 1; }
+        .close-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1; }
     </style>
 </head>
 <body>
@@ -106,17 +102,16 @@
         'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn'
     );
 
-    // Inizializzazione mappa con zoom control in basso a destra per non intralciare il menu
     const map = L.map('map', { zoomControl: false }).setView([42.85, 10.95], 13);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map); // Spostato in alto a destra
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let tracceLayer = L.layerGroup().addTo(map);
     let cacheVisualizzata = {};
     let markerRicerca = null;
+    let tracciaSelezionataId = null;
 
-    // Formatta data e ora separatamente
     function formattaDataOra(unix) {
         if (!unix) return { data: "N.D.", ora: "" };
         const d = new Date(unix * 1000);
@@ -139,6 +134,12 @@
                 const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), {
                     color: '#3498db', weight: 3, opacity: 0.4
                 }).addTo(tracceLayer);
+                
+                poly.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    evidenziaTraccia(t.id, true);
+                });
+                
                 cacheVisualizzata[t.id] = poly;
             }
         });
@@ -170,6 +171,7 @@
             
             const card = document.createElement('div');
             card.className = 'track-card';
+            card.id = `card-${t.id}`;
             card.innerHTML = `
                 <div class="track-header">
                     <span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span>
@@ -186,16 +188,37 @@
                 <button class="btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 SCARICA GPX</button>
             `;
 
-            card.onmouseenter = () => cacheVisualizzata[t.id]?.setStyle({ color: '#e67e22', weight: 8, opacity: 1 });
-            card.onmouseleave = () => cacheVisualizzata[t.id]?.setStyle({ color: '#3498db', weight: 3, opacity: 0.4 });
             card.onclick = (e) => {
-                if(e.target.tagName !== 'BUTTON') {
-                    map.fitBounds(cacheVisualizzata[t.id].getBounds(), { padding: [20, 20] });
-                }
+                if(e.target.tagName !== 'BUTTON') evidenziaTraccia(t.id, true);
             };
             
             lista.appendChild(card);
         });
+    }
+
+    function evidenziaTraccia(id, zoom) {
+        // Reset stili precedenti
+        if (tracciaSelezionataId && cacheVisualizzata[tracciaSelezionataId]) {
+            cacheVisualizzata[tracciaSelezionataId].setStyle({ color: '#3498db', weight: 3, opacity: 0.4 });
+        }
+        document.querySelectorAll('.track-card').forEach(c => c.classList.remove('active'));
+
+        tracciaSelezionataId = id;
+
+        // Applica nuovo stile mappa
+        if (cacheVisualizzata[id]) {
+            const poly = cacheVisualizzata[id];
+            poly.setStyle({ color: '#e67e22', weight: 7, opacity: 1 });
+            poly.bringToFront();
+            if (zoom) map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+        }
+
+        // Applica stile menu e scroll
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+            card.classList.add('active');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
 
     async function scarica(id, nome) {
