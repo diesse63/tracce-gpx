@@ -3,239 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Dinamica Tracce - diesse63</title>
+    <title>Mappa Tracce GPX - diesse63</title>
     
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         #map { height: 100vh; width: 100%; z-index: 1; }
         
+        /* Menu inizialmente nascosto */
         #menu {
-            position: absolute; top: 10px; left: 10px; z-index: 1000;
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
             background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 300px;
-            max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 280px;
+            max-height: 80vh; display: none; /* NASCOSTO DI BASE */
+            flex-direction: column;
         }
 
-        h3 { margin: 0 0 10px 0; color: #2c3e50; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-bottom: 10px; }
+        h3 { margin: 0; color: #2c3e50; font-size: 17px; }
+        .close-btn { cursor: pointer; font-weight: bold; color: #e74c3c; font-size: 20px; border: none; background: none; }
         
-        #status { font-size: 12px; color: #7f8c8d; margin-bottom: 10px; font-style: italic; }
-
         #lista-tracce { overflow-y: auto; flex-grow: 1; }
+        .track-item { border-bottom: 1px solid #eee; padding: 10px 5px; cursor: pointer; }
+        .track-item:hover { background: #f8f9fa; }
+        .track-item strong { color: #2980b9; display: block; font-size: 14px; }
+        .track-info { font-size: 12px; color: #7f8c8d; margin-top: 3px; }
 
-        .track-item { 
-            border-bottom: 1px solid #eee; padding: 12px 5px; 
-            cursor: pointer; transition: 0.2s;
+        .btn-gpx { 
+            cursor: pointer; background: #27ae60; color: white; border: none; 
+            border-radius: 4px; padding: 5px; width: 100%; margin-top: 8px; font-weight: bold;
         }
-        .track-item:hover { background: #f0f7ff; }
-        .track-item.active { background: #e8f4fd; border-left: 4px solid #3498db; }
-        
-        .track-item strong { color: #2980b9; display: block; font-size: 14px; margin-bottom: 3px; }
-        .track-info { font-size: 12px; color: #34495e; }
-
-        .controls { margin-top: 10px; display: flex; gap: 5px; }
-        
-        button { 
-            cursor: pointer; border: none; border-radius: 4px;
-            padding: 6px 10px; font-size: 12px; font-weight: bold;
-            transition: 0.2s; flex: 1;
-        }
-        .btn-view { background: #3498db; color: white; }
-        .btn-gpx { background: #27ae60; color: white; }
-        button:hover { opacity: 0.8; }
-
-        /* Scrollbar pulita */
-        #lista-tracce::-webkit-scrollbar { width: 6px; }
-        #lista-tracce::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div id="menu">
-        <h3>Tracce Visibili</h3>
-        <p id="status">Sposta la mappa per caricare le tracce...</p>
+        <div class="menu-header">
+            <h3>Tracce trovate</h3>
+            <button class="close-btn" onclick="chiudiMenu()">×</button>
+        </div>
         <div id="lista-tracce"></div>
     </div>
 
     <div id="map"></div>
 
-    <!-- Librerie -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. CONFIGURAZIONE
         const SUPABASE_URL = 'https://afdbrcywdooycvipzovs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Inizializza Mappa
-        const map = L.map('map').setView([42.85, 10.95], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        const map = L.map('map').setView([42.85, 10.95], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let traccePresenti = {}; // Cache per le polylines sulla mappa
-        let tracciaSelezionataId = null;
+        let traccePresenti = {}; 
+        let tracciaSelezionata = null;
         let markerRicerca = null;
 
-        // 2. FUNZIONE PRINCIPALE: CARICA TRACCE NELL'AREA VISIBILE
-        async function caricaTracceInVista() {
+        // 1. DISEGNA LE TRACCE NELL'AREA (Solo visuale, senza lista)
+        async function aggiornaMappa() {
             const bounds = map.getBounds();
-            const statusMsg = document.getElementById('status');
-            statusMsg.innerText = "🔄 Aggiornamento in corso...";
-
             const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
-                min_lat: bounds.getSouth(),
-                min_lon: bounds.getWest(),
-                max_lat: bounds.getNorth(),
-                max_lon: bounds.getEast()
+                min_lat: bounds.getSouth(), min_lon: bounds.getWest(),
+                max_lat: bounds.getNorth(), max_lon: bounds.getEast()
             });
 
-            if (error) {
-                console.error("Errore SQL:", error);
-                statusMsg.innerText = "❌ Errore caricamento dati.";
-                return;
-            }
+            if (error) return;
 
-            // A. Gestione Polylines sulla mappa
             const nuoviIds = new Set(data.map(t => t.id.toString()));
             
-            // Rimuovi quelle non più visibili
+            // Rimuovi vecchie
             Object.keys(traccePresenti).forEach(id => {
-                if (!nuoviIds.has(id) && id != tracciaSelezionataId) {
+                if (!nuoviIds.has(id)) {
                     map.removeLayer(traccePresenti[id]);
                     delete traccePresenti[id];
                 }
             });
 
-            // Aggiungi nuove
+            // Aggiungi nuove (linee sottili blu)
             data.forEach(t => {
                 if (!traccePresenti[t.id]) {
                     const geoData = JSON.parse(t.geojson);
-                    // GeoJSON è [lon, lat], Leaflet vuole [lat, lon]
                     const latLngs = geoData.coordinates.map(c => [c[1], c[0]]);
-                    
-                    const poly = L.polyline(latLngs, {
-                        color: '#3498db',
-                        weight: 3,
-                        opacity: 0.6,
-                        id: t.id
+                    traccePresenti[t.id] = L.polyline(latLngs, {
+                        color: '#3498db', weight: 2, opacity: 0.5
                     }).addTo(map);
-
-                    poly.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        selezionaTraccia(t.id);
-                    });
-
-                    traccePresenti[t.id] = poly;
                 }
             });
-
-            // B. Aggiorna Lista Laterale
-            aggiornaListaUI(data);
-            statusMsg.innerText = `✅ Visualizzando ${data.length} tracce`;
         }
 
-        // 3. AGGIORNA INTERFACCIA LISTA
-        function aggiornaListaUI(tracce) {
+        // 2. CLICK SULLA MAPPA: MOSTRA MENU SOLO SE VICINO A TRACCIA
+        map.on('click', async (e) => {
+            const { lat, lng } = e.latlng;
+            
+            if (markerRicerca) map.removeLayer(markerRicerca);
+            markerRicerca = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
+
+            // Ricerca nel raggio di 100 metri
+            const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', {
+                click_lat: lat, click_lon: lng, raggio_metri: 100
+            });
+
+            if (data && data.length > 0) {
+                mostraMenu(data);
+            } else {
+                chiudiMenu();
+            }
+        });
+
+        function mostraMenu(tracce) {
+            const menu = document.getElementById('menu');
             const lista = document.getElementById('lista-tracce');
             lista.innerHTML = "";
+            menu.style.display = 'flex';
 
             tracce.forEach(t => {
                 const div = document.createElement('div');
-                div.className = `track-item ${t.id == tracciaSelezionataId ? 'active' : ''}`;
-                div.id = `item-${t.id}`;
+                div.className = 'track-item';
                 div.innerHTML = `
                     <strong>${t.nome_file}</strong>
-                    <div class="track-info">🚲 ${t.tipo_percorso || 'MTB'} - 📏 ${t.lunghezza} km</div>
-                    <div class="controls">
-                        <button class="btn-view" onclick="selezionaTraccia(${t.id}, true)">👁️ Vedi</button>
-                        <button class="btn-gpx" onclick="scaricaGPX(${t.id}, '${t.nome_file}')">💾 GPX</button>
-                    </div>
+                    <div class="track-info">🚲 ${t.tipo_percorso} - 📏 ${t.lunghezza}km</div>
+                    <button class="btn-gpx" onclick="scaricaGPX(${t.id}, '${t.nome_file}')">Scarica GPX</button>
                 `;
                 div.onclick = (e) => {
-                    if(e.target.tagName !== 'BUTTON') selezionaTraccia(t.id, true);
+                    if(e.target.tagName !== 'BUTTON') evidenziaTraccia(t.id);
                 };
                 lista.appendChild(div);
             });
         }
 
-        // 4. SELEZIONA / EVIDENZIA TRACCIA
-        async function selezionaTraccia(id, zoom = false) {
-            // Ripristina vecchia traccia
-            if (tracciaSelezionataId && traccePresenti[tracciaSelezionataId]) {
-                traccePresenti[tracciaSelezionataId].setStyle({ color: '#3498db', weight: 3, opacity: 0.6 });
-            }
-
-            tracciaSelezionataId = id;
-
-            // Evidenzia nuova traccia
+        function evidenziaTraccia(id) {
+            if (tracciaSelezionata) tracciaSelezionata.setStyle({ color: '#3498db', weight: 2, opacity: 0.5 });
+            
             if (traccePresenti[id]) {
-                const poly = traccePresenti[id];
-                poly.setStyle({ color: '#e67e22', weight: 6, opacity: 1 });
-                poly.bringToFront();
-                if (zoom) map.fitBounds(poly.getBounds(), { padding: [40, 40] });
+                tracciaSelezionata = traccePresenti[id];
+                tracciaSelezionata.setStyle({ color: '#e67e22', weight: 6, opacity: 1 });
+                tracciaSelezionata.bringToFront();
+                map.fitBounds(tracciaSelezionata.getBounds(), { padding: [30, 30] });
             }
-
-            // Evidenzia nella lista
-            document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
-            const activeItem = document.getElementById(`item-${id}`);
-            if (activeItem) activeItem.classList.add('active');
         }
 
-        // 5. RICERCA PUNTUALE AL CLICK
-        map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            
+        function chiudiMenu() {
+            document.getElementById('menu').style.display = 'none';
             if (markerRicerca) map.removeLayer(markerRicerca);
-            markerRicerca = L.circleMarker([lat, lng], { radius: 6, color: '#e74c3c' }).addTo(map);
+        }
 
-            const { data } = await supabaseClient.rpc('cerca_tracce_vicine', {
-                click_lat: lat, click_lon: lng, raggio_metri: 500
-            });
-
-            if (data && data.length > 0) {
-                selezionaTraccia(data[0].id, true);
-            }
-        });
-
-        // 6. DOWNLOAD GPX (Recupera dati alta risoluzione)
         async function scaricaGPX(id, nome) {
-            const { data, error } = await supabaseClient
-                .from('Tracce')
-                .select('CoordLight')
-                .eq('id', id)
-                .single();
-
-            if (error || !data) return;
-
+            const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
             const punti = JSON.parse(data.CoordLight);
-            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk><name>${nome}</name><trkseg>`;
-            
-            punti.forEach(p => {
-                gpx += `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
-            });
-
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${nome}</name><trkseg>`;
+            punti.forEach(p => gpx += `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`);
             gpx += `\n</trkseg></trk></gpx>`;
-
             const blob = new Blob([gpx], { type: 'application/gpx+xml' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${nome.replace(/\s+/g, '_')}.gpx`;
-            a.click();
+            a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`; a.click();
         }
 
-        // Gestione eventi movimento mappa
-        map.on('moveend', caricaTracceInVista);
-        
-        // Avvio iniziale
-        caricaTracceInVista();
+        map.on('moveend', aggiornaMappa);
+        aggiornaMappa();
 
     </script>
 </body>
