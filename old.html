@@ -18,8 +18,12 @@
             display: none; flex-direction: column; border: 1px solid #ccc;
         }
         .menu-header { background: #2c3e50; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; flex-grow: 1; text-align: center; }
         
+        /* Bottoni Navigazione */
+        .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; transition: color 0.2s; }
+        .nav-btn:hover { color: #3498db; }
+
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch; }
         #lista-tracce::-webkit-scrollbar { display: none; }
 
@@ -56,7 +60,9 @@
 
 <div id="menu">
     <div class="menu-header">
+        <button class="nav-btn" onclick="cambiaRecord(-1)">&#10094;</button>
         <h3 id="count-label">0 TRACCE</h3>
+        <button class="nav-btn" onclick="cambiaRecord(1)">&#10095;</button>
         <button class="close-btn" onclick="chiudiMenu()">×</button>
     </div>
     <div id="lista-tracce"></div>
@@ -92,7 +98,7 @@
     let markerRicerca = null;
     let currentHighlightedId = null;
     let chartInstance = null;
-    let totalTracce = 0; // FIX: Dichiarazione globale mancante
+    let totalTracce = 0;
 
     const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
     const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
@@ -108,6 +114,8 @@
 
     const listaTracce = document.getElementById('lista-tracce');
     let scrollTimeout;
+    
+    // Listener per lo scorrimento manuale/automatico
     listaTracce.addEventListener('scroll', () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
@@ -119,6 +127,12 @@
             }
         }, 100);
     });
+
+    // NUOVA FUNZIONE: SCORRIMENTO TRAMITE BOTTONI
+    function cambiaRecord(direzione) {
+        const width = listaTracce.offsetWidth;
+        listaTracce.scrollBy({ left: direzione * width, behavior: 'smooth' });
+    }
 
     async function caricaArea() {
         const b = map.getBounds();
@@ -152,7 +166,7 @@
 
         if (error || !data.length) { chiudiMenu(); return; }
 
-        totalTracce = data.length; // FIX: Assegnazione variabile globale
+        totalTracce = data.length;
         listaTracce.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
 

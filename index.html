@@ -9,9 +9,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
+        /* Bottone Upload in alto a DX */
+        .upload-floating-btn {
+            position: absolute; top: 12px; right: 60px; z-index: 1000;
+            background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 18px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        }
+        .upload-floating-btn:hover { background: #f4f4f4; }
+
+        /* Menu Inferiore */
         #menu {
             position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000;
             background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
@@ -20,10 +30,7 @@
         .menu-header { background: #2c3e50; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
         .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; flex-grow: 1; text-align: center; }
         
-        /* Bottoni Navigazione */
-        .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; transition: color 0.2s; }
-        .nav-btn:hover { color: #3498db; }
-
+        .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch; }
         #lista-tracce::-webkit-scrollbar { display: none; }
 
@@ -58,6 +65,11 @@
 </head>
 <body>
 
+<!-- Bottone Caricamento in alto a DX -->
+<label class="upload-floating-btn" title="Importa GPX">
+    📤 <input type="file" id="import-file" accept=".gpx" style="display:none" onchange="importaGPX(event)">
+</label>
+
 <div id="menu">
     <div class="menu-header">
         <button class="nav-btn" onclick="cambiaRecord(-1)">&#10094;</button>
@@ -73,9 +85,7 @@
         <span id="alt-title" style="font-size: 11px; font-weight: bold;">ALTIMETRIA</span>
         <button class="close-btn" onclick="chiudiAltimetria()">×</button>
     </div>
-    <div id="alt-content">
-        <canvas id="altChart"></canvas>
-    </div>
+    <div id="alt-content"><canvas id="altChart"></canvas></div>
 </div>
 
 <div id="map"></div>
@@ -100,8 +110,10 @@
     let chartInstance = null;
     let totalTracce = 0;
 
-    const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
-    const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
+    // COLORI RICHIESTI
+    const COLOR_MTB = '#e74c3c'; // ROSSO
+    const COLOR_TREKKING = '#3498db'; // BLU
+    const COLOR_ACTIVE = '#f39c12'; // ARANCIONE EVIDENZIATO
 
     function formattaDataOra(unix) {
         if (!unix) return { data: "N.D.", ora: "" };
@@ -112,10 +124,30 @@
         };
     }
 
+    // --- LOGICA MAPPA E AREA ---
+    async function caricaArea() {
+        const b = map.getBounds();
+        const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
+            min_lat: b.getSouth(), min_lon: b.getWest(),
+            max_lat: b.getNorth(), max_lon: b.getEast()
+        });
+        if (error) return;
+        data.forEach(t => {
+            if (!cacheVisualizzata[t.id]) {
+                const geo = JSON.parse(t.geojson);
+                const color = t.tipo_percorso === 'MTB' ? COLOR_MTB : COLOR_TREKKING;
+                const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), {
+                    color: color, weight: 3, opacity: 0.6, tipo: t.tipo_percorso
+                }).addTo(tracceLayer);
+                
+                cacheVisualizzata[t.id] = poly;
+                poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng); });
+            }
+        });
+    }
+
     const listaTracce = document.getElementById('lista-tracce');
     let scrollTimeout;
-    
-    // Listener per lo scorrimento manuale/automatico
     listaTracce.addEventListener('scroll', () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
@@ -128,30 +160,8 @@
         }, 100);
     });
 
-    // NUOVA FUNZIONE: SCORRIMENTO TRAMITE BOTTONI
     function cambiaRecord(direzione) {
-        const width = listaTracce.offsetWidth;
-        listaTracce.scrollBy({ left: direzione * width, behavior: 'smooth' });
-    }
-
-    async function caricaArea() {
-        const b = map.getBounds();
-        const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
-            min_lat: b.getSouth(), min_lon: b.getWest(),
-            max_lat: b.getNorth(), max_lon: b.getEast()
-        });
-        if (error) return;
-        data.forEach(t => {
-            if (!cacheVisualizzata[t.id]) {
-                const geo = JSON.parse(t.geojson);
-                const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), stileDefault).addTo(tracceLayer);
-                cacheVisualizzata[t.id] = poly;
-                poly.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    eseguiRicerca(e.latlng.lat, e.latlng.lng);
-                });
-            }
-        });
+        listaTracce.scrollBy({ left: direzione * listaTracce.offsetWidth, behavior: 'smooth' });
     }
 
     map.on('click', e => eseguiRicerca(e.latlng.lat, e.latlng.lng));
@@ -178,7 +188,7 @@
             card.className = 'track-card';
             card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
+                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">${info.ora}</span></span></div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
@@ -202,89 +212,95 @@
 
     function aggiornaVistaTraccia(id, currentX) {
         document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${totalTracce}`;
-        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
+        
+        // Ripristino colore precedente basato sul tipo
+        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
+            const t = cacheVisualizzata[currentHighlightedId];
+            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.6 });
+        }
+
         currentHighlightedId = id;
         const poly = cacheVisualizzata[id];
         if (poly) {
-            poly.setStyle(stileAttivo).bringToFront();
+            poly.setStyle({ color: COLOR_ACTIVE, weight: 8, opacity: 1 }).bringToFront();
             map.fitBounds(poly.getBounds(), { paddingBottomRight: [20, 180] });
         }
     }
 
+    // --- ALGORITMI DI IMPORTAZIONE E SEMPLIFICAZIONE ---
+    function calcolaDistanza(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function DouglasPeucker(points, epsilon) {
+        let dmax = 0, index = 0;
+        for (let i = 1; i < points.length - 1; i++) {
+            const d = Math.abs((points[points.length-1][1]-points[0][1])*points[i][0] - (points[points.length-1][0]-points[0][0])*points[i][1] + points[points.length-1][0]*points[0][1] - points[points.length-1][1]*points[0][0]) / Math.sqrt(Math.pow(points[points.length-1][1]-points[0][1],2) + Math.pow(points[points.length-1][0]-points[0][0],2));
+            if (d > dmax) { index = i; dmax = d; }
+        }
+        return dmax > epsilon ? DouglasPeucker(points.slice(0, index + 1), epsilon).slice(0, -1).concat(DouglasPeucker(points.slice(index), epsilon)) : [points[0], points[points.length - 1]];
+    }
+
+    async function importaGPX(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const xml = new DOMParser().parseFromString(e.target.result, "text/xml");
+            const pts = xml.querySelectorAll("trkpt");
+            let originali = [], altData = [], dist = 0, gain = 0, start = null, end = null;
+            
+            pts.forEach((pt, i) => {
+                const lat = parseFloat(pt.getAttribute("lat")), lon = parseFloat(pt.getAttribute("lon")), ele = parseFloat(pt.querySelector("ele")?.textContent || 0), time = pt.querySelector("time")?.textContent;
+                originali.push([lat, lon]);
+                if (i > 0) {
+                    dist += calcolaDistanza(originali[i-1][0], originali[i-1][1], lat, lon);
+                    if (ele > parseFloat(pts[i-1].querySelector("ele")?.textContent || 0)) gain += (ele - parseFloat(pts[i-1].querySelector("ele")?.textContent || 0));
+                }
+                altData.push([parseFloat(dist.toFixed(2)), Math.round(ele)]);
+                if (i === 0) start = time; end = time;
+            });
+
+            const simplified = DouglasPeucker(originali, 0.00005);
+            let dur = "--:--"; if(start && end) { const diff = new Date(end) - new Date(start); dur = `${Math.floor(diff/3600000).toString().padStart(2,'0')}:${Math.floor((diff%3600000)/60000).toString().padStart(2,'0')}`; }
+
+            const tipo = confirm("OK per MTB (Rosso), Annulla per Trekking (Blu)") ? "MTB" : "Trekking";
+            const { error } = await supabaseClient.from('Tracce').insert([{
+                NomeFile: xml.querySelector("name")?.textContent || file.name.replace(".gpx",""),
+                Data: start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000),
+                Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: dur, TipoPercorso: tipo, CoordLight: simplified, Altimetria: altData
+            }]);
+            if (error) alert(error.message); else { alert("Importato!"); location.reload(); }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- ALTIMETRIA E UTILITY ---
     async function mostraAltimetria(id, nome) {
-        const { data, error } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
-        if (error || !data.Altimetria) return alert("Dati altimetria non disponibili");
-
+        const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
         const altData = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
-        const labels = altData.map(p => p[0].toFixed(2));
-        const elevations = altData.map(p => p[1]);
-
-        const ctx = document.getElementById('altChart').getContext('2d');
         if (chartInstance) chartInstance.destroy();
-
-        chartInstance = new Chart(ctx, {
+        chartInstance = new Chart(document.getElementById('altChart').getContext('2d'), {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Quota (m)',
-                    data: elevations,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    fill: true,
-                    pointRadius: 0,
-                    borderWidth: 2,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { title: { display: true, text: 'Km', font: { size: 10 } }, ticks: { font: { size: 8 } } },
-                    y: { title: { display: true, text: 'm', font: { size: 10 } }, ticks: { font: { size: 8 } } }
-                },
-                plugins: { legend: { display: false } }
-            }
+            data: { labels: altData.map(p => p[0]), datasets: [{ label: 'Quota', data: altData.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
-
-        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 30);
+        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20);
         document.getElementById('alt-popup').style.display = 'flex';
     }
 
     function chiudiAltimetria() { document.getElementById('alt-popup').style.display = 'none'; }
-
-    function makeDraggable(el, handle) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        handle.onmousedown = dragMouseDown;
-        function dragMouseDown(e) {
-            e.preventDefault();
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
-        function elementDrag(e) {
-            e.preventDefault();
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            el.style.top = (el.offsetTop - pos2) + "px";
-            el.style.left = (el.offsetLeft - pos1) + "px";
-            el.style.transform = "none";
-        }
-        function closeDragElement() {
-            document.onmouseup = null;
-            document.onmousemove = null;
-        }
-    }
-    makeDraggable(document.getElementById("alt-popup"), document.getElementById("alt-header"));
-
     function chiudiMenu() {
         document.getElementById('menu').style.display = 'none';
         if (markerRicerca) map.removeLayer(markerRicerca);
-        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
+        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
+            const t = cacheVisualizzata[currentHighlightedId];
+            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.6 });
+        }
         currentHighlightedId = null;
     }
 
@@ -296,9 +312,14 @@
         gpx += `\n</trkseg></trk></gpx>`;
         const blob = new Blob([gpx], { type: 'application/gpx+xml' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`; a.click();
+        const a = document.createElement('a'); a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`; a.click();
     }
+
+    // Drag popup
+    function makeDraggable(el, handle) {
+        let p1=0,p2=0,p3=0,p4=0; handle.onmousedown = (e) => { e.preventDefault(); p3=e.clientX; p4=e.clientY; document.onmouseup=()=>document.onmousemove=null; document.onmousemove=(e)=>{ p1=p3-e.clientX; p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; el.style.top=(el.offsetTop-p2)+"px"; el.style.left=(el.offsetLeft-p1)+"px"; el.style.transform="none"; }; };
+    }
+    makeDraggable(document.getElementById("alt-popup"), document.getElementById("alt-header"));
 
     map.on('moveend', caricaArea);
     caricaArea();
