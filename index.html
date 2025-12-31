@@ -10,35 +10,51 @@
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a1a; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; display: none; }
+        
         #auth-screen { position: fixed; inset: 0; background: #1a1a1a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 340px; color: #333; text-align: center; }
         .login-box input { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
         #app-ui { display: none; }
         .top-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; }
         .ctrl-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
         .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; height: 36px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); display: none; flex-direction: column; border: 1px solid #ccc; }
-        .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; align-items: center; }
+
+        #menu {
+            position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000;
+            background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
+            display: none; flex-direction: column; border: 1px solid #ccc;
+        }
+        .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; letter-spacing: 1px; }
         .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
+
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; }
         #lista-tracce::-webkit-scrollbar { display: none; }
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; padding: 12px 18px; color: #333; }
         .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
         .track-time { font-size: 10px; color: #7f8c8d; margin-left: 5px; }
+        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 13px; width: 18px; text-align: center; }
+
         .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
         .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
         .btn-group { display: flex; gap: 4px; }
         .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
+
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
-        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
         .modal-box textarea, .modal-box input { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; font-family: inherit; }
         .modal-box textarea { height: 100px; resize: none; }
-        #alt-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 450px; background: white; z-index: 4000; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column; }
+
+        #alt-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 95%; max-width: 450px; background: white; z-index: 4000;
+            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column;
+        }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
         canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
         .close-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1; }
@@ -86,13 +102,14 @@
         <div class="modal-box">
             <h4 style="margin:0">DETTAGLI PERCORSO</h4>
             <p id="nome-file-info" style="font-size:10px; color:#666; margin: 8px 0;"></p>
-            <label style="font-size:11px;">Creatore (modificabile):</label>
+            <label style="font-size:11px;">Creatore:</label>
             <input type="text" id="creatore-input" value="Daniele">
             <textarea id="note-import-input" placeholder="Note iniziali..."></textarea>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button id="btn-save-mtb" style="background:#e74c3c; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">MTB</button>
                 <button id="btn-save-trk" style="background:#3498db; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">TREKKING</button>
             </div>
+            <button id="btn-cancel-import" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:11px;">Annulla</button>
         </div>
     </div>
 
@@ -113,6 +130,7 @@
     let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
 
+    // EVENTI
     document.getElementById('btn-login-action').addEventListener('click', login);
     document.getElementById('btn-logout-action').addEventListener('click', logout);
     document.getElementById('btn-prev').addEventListener('click', () => cambiaRecord(-1));
@@ -122,6 +140,7 @@
     document.getElementById('btn-save-note').addEventListener('click', salvaNotaModificata);
     document.getElementById('btn-save-mtb').addEventListener('click', () => salvaTraccia('MTB'));
     document.getElementById('btn-save-trk').addEventListener('click', () => salvaTraccia('Trekking'));
+    document.getElementById('btn-cancel-import').addEventListener('click', () => document.getElementById('import-modal').style.display='none');
     document.getElementById('input-gpx').addEventListener('change', avviaImport);
     document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', () => document.getElementById('note-modal').style.display = 'none'));
 
@@ -129,7 +148,7 @@
         const user = document.getElementById('username').value;
         const pass = document.getElementById('pass').value;
         const email = user.includes('@') ? user : user + '@grifo.mtb';
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
         if (error) alert("Credenziali errate"); else checkSession();
     }
     async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
@@ -175,26 +194,20 @@
         markerClick = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', { click_lat: lat, click_lon: lng, raggio_metri: 500 });
         if (error || !data.length) { chiudiMenu(); return; }
-        
         const ids = data.map(d => d.id);
         const { data: details } = await supabaseClient.from('Tracce').select('id, Note, Creatore').in('id', ids);
         const detailsMap = Object.fromEntries((details || []).map(d => [d.id, d]));
-        
         total = data.length;
         const lista = document.getElementById('lista-tracce');
         lista.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
-        
         data.forEach(t => {
             const d = new Date(t.data_unix * 1000);
             const det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header">
-                    <span class="track-date">📅 ${d.toLocaleDateString('it-IT')} 
-                    <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span>
-                </div>
+                <div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
@@ -226,20 +239,11 @@
 
     async function salvaNotaModificata() {
         const nuovaNota = document.getElementById('edit-note-input').value;
-        const { error } = await supabaseClient
-            .from('Tracce')
-            .update({ Note: nuovaNota })
-            .eq('id', idInModifica);
-
-        if (error) {
-            alert("Errore nel salvataggio: " + error.message);
-        } else {
+        const { error } = await supabaseClient.from('Tracce').update({ Note: nuovaNota }).eq('id', idInModifica);
+        if (error) alert("Errore salvataggio: " + error.message);
+        else {
             document.getElementById('note-modal').style.display = 'none';
-            // Ricarica la card per riflettere il cambiamento (colore bottone)
-            if (markerClick) {
-                const center = markerClick.getLatLng();
-                eseguiRicerca(center.lat, center.lng);
-            }
+            if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng);
         }
     }
 
@@ -259,6 +263,7 @@
             if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1);
         }, 150);
     });
+
     function cambiaRecord(dir) { listCont.scrollBy({ left: dir * listCont.offsetWidth, behavior: 'smooth' }); }
     function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId=null; }
 
@@ -288,15 +293,26 @@
         };
         reader.readAsText(file);
     }
+
     async function salvaTraccia(tipo) {
         tempImport.TipoPercorso = tipo; 
         tempImport.Note = document.getElementById('note-import-input').value;
         tempImport.Creatore = document.getElementById('creatore-input').value;
+        
         const { error } = await supabaseClient.from('Tracce').insert([tempImport]);
+        
         if (error) {
-            if (error.code === '23505') alert("Errore: questa traccia esiste già nell'archivio!");
-            else alert("Errore: " + error.message);
-        } else location.reload();
+            // GESTIONE DUPLICATO
+            if (error.code === '23505') {
+                document.getElementById('import-modal').style.display = 'none'; // Chiude il popup
+                alert("OPERAZIONE ANNULLATA: Questa traccia è già presente nell'archivio (Unix ID duplicato).");
+                tempImport = null; // Svuota i dati temporanei
+            } else {
+                alert("Errore inserimento: " + error.message);
+            }
+        } else {
+            location.reload();
+        }
     }
 
     async function scarica(id, nome) {
