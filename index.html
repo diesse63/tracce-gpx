@@ -4,14 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracce GPX - diesse63</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
+        /* Pannello Inferiore (Carousel) */
         #menu {
             position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000;
-            background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
+            background: white; border-radius: 12px; box-shadow: 0 -2px 25px rgba(0,0,0,0.3); 
             display: none; flex-direction: column; border: 1px solid #ccc;
         }
 
@@ -21,11 +24,13 @@
         }
         .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
+        /* Contenitore Scorrimento Orizzontale */
         #lista-tracce { 
             display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
             background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch;
         }
 
+        /* Card: Un solo record visibile per volta */
         .track-card { 
             flex: 0 0 100%; 
             scroll-snap-align: start;
@@ -33,10 +38,11 @@
             background: white; padding: 12px 18px; 
         }
 
-        .track-header { margin-bottom: 6px; }
+        .track-header { margin-bottom: 5px; }
         .track-date { color: #2c3e50; font-size: 15px; font-weight: bold; }
         .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 6px; }
         
+        /* Griglia icone e dati */
         .stats-grid { 
             display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; 
             border-top: 1px solid #eee; padding-top: 8px; margin-bottom: 8px;
@@ -44,6 +50,7 @@
         .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 14px; width: 20px; text-align: center; }
 
+        /* Riga finale compatta: Nome file + Bottone GPX */
         .file-row {
             display: flex; align-items: center; justify-content: space-between;
             gap: 12px; border-top: 1px dotted #ccc; padding-top: 8px;
@@ -54,9 +61,10 @@
             background: #27ae60; color: white; border: none; padding: 5px 12px; border-radius: 4px; 
             font-weight: bold; cursor: pointer; font-size: 10px; display: flex; align-items: center; gap: 4px;
         }
+        .btn-mini-gpx:hover { background: #219150; }
         
         .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        #lista-tracce::-webkit-scrollbar { display: none; }
+        #lista-tracce::-webkit-scrollbar { display: none; } /* Nasconde scrollbar */
     </style>
 </head>
 <body>
@@ -71,15 +79,18 @@
 
 <div id="map"></div>
 
+<!-- Librerie -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+    // 1. CONFIGURAZIONE SUPABASE
     const supabaseClient = supabase.createClient(
         'https://afdbrcywdooycvipzovs.supabase.co',
         'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn'
     );
 
+    // 2. INIZIALIZZAZIONE MAPPA
     const map = L.map('map', { zoomControl: false }).setView([42.85, 10.95], 13);
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -93,6 +104,7 @@
     const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
     const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
 
+    // Utility per formattare data e ora Unix
     function formattaDataOra(unix) {
         if (!unix) return { data: "N.D.", ora: "" };
         const d = new Date(unix * 1000);
@@ -102,6 +114,7 @@
         };
     }
 
+    // 3. SINCRONIZZAZIONE SCROLL -> MAPPA
     const listaTracce = document.getElementById('lista-tracce');
     let scrollTimeout;
     listaTracce.addEventListener('scroll', () => {
@@ -116,6 +129,7 @@
         }, 100);
     });
 
+    // 4. CARICA TRACCE NELL'AREA VISIBILE
     async function caricaArea() {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
@@ -128,6 +142,7 @@
                 const geo = JSON.parse(t.geojson);
                 const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), stileDefault).addTo(tracceLayer);
                 cacheVisualizzata[t.id] = poly;
+                
                 poly.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
                     eseguiRicerca(e.latlng.lat, e.latlng.lng);
@@ -136,6 +151,7 @@
         });
     }
 
+    // 5. RICERCA AL CLICK (500m)
     map.on('click', e => eseguiRicerca(e.latlng.lat, e.latlng.lng));
 
     async function eseguiRicerca(lat, lng) {
@@ -163,15 +179,17 @@
             card.className = 'track-card';
             card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
+                <div class="track-header">
+                    <span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
-                    <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
-                    <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0}m</div>
-                    <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--'}</div>
+                    <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza} km</div>
+                    <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0} m</div>
+                    <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--:--'}</div>
                 </div>
                 <div class="file-row">
-                    <span class="file-name">📄 ${t.nome_file}</span>
+                    <span class="file-name" title="${t.nome_file}">📄 ${t.nome_file}</span>
                     <button class="btn-mini-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
                 </div>
             `;
@@ -182,49 +200,71 @@
         aggiornaVistaTraccia(data[0].id, 1);
     }
 
+    // 6. EVIDENZIAZIONE E CENTRAMENTO
     function aggiornaVistaTraccia(id, currentX) {
         document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${totalTracce}`;
+        
+        // Reset stile precedente
         if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
             cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
         }
+        
         currentHighlightedId = id;
         const poly = cacheVisualizzata[id];
         if (poly) {
             poly.setStyle(stileAttivo).bringToFront();
+            
+            // Centra la traccia lasciando spazio per il menu (padding Bottom 180px)
             map.fitBounds(poly.getBounds(), {
                 paddingTopLeft: [20, 20],
-                paddingBottomRight: [20, 180]
+                paddingBottomRight: [20, 180] 
             });
         }
     }
 
-    // NUOVA FUNZIONE DI CHIUSURA COMPLETA
+    // 7. CHIUSURA MENU E PULIZIA
     function chiudiMenu() {
-        // 1. Nascondi il menu
         document.getElementById('menu').style.display = 'none';
-        
-        // 2. Rimuovi il marker rosso del click
         if (markerRicerca) map.removeLayer(markerRicerca);
-
-        // 3. Ripristina lo stile della traccia attiva
         if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
             cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
         }
-        
-        // 4. Reset ID evidenziato
         currentHighlightedId = null;
     }
 
+    // 8. ESPORTAZIONE GPX STANDARD (Garmin Compatible)
     async function scarica(id, nome) {
-        const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
+        const { data, error } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
+        if (error || !data) return;
+
         const punti = JSON.parse(data.CoordLight);
-        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${nome}</name><trkseg>`;
-        punti.forEach(p => gpx += `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`);
-        gpx += `\n</trkseg></trk></gpx>`;
+        
+        let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TracceGPX-diesse63" 
+  xmlns="http://www.topografix.com/GPX/1/1" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata><name>${nome}</name></metadata>
+  <trk>
+    <name>${nome}</name>
+    <trkseg>`;
+        
+        punti.forEach(p => {
+            gpx += `\n      <trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
+        });
+
+        gpx += `\n    </trkseg>\n  </trk>\n</gpx>`;
+
         const blob = new Blob([gpx], { type: 'application/gpx+xml' });
         const url = window.URL.createObjectURL(blob);
+        const nomePulito = nome.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_');
+        
         const a = document.createElement('a');
-        a.href = url; a.download = `${nome}.gpx`; a.click();
+        a.href = url; a.download = `${nomePulito}.gpx`; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     }
 
     map.on('moveend', caricaArea);
