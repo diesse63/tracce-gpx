@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracce GPX - diesse63</title>
-    <link rel="icon" href="data:,"> <!-- Fix errore favicon 404 -->
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Libreria per il Grafico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
+        
+        /* Menu Inferiore */
         #menu {
             position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000;
             background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
@@ -18,15 +23,29 @@
         .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch; }
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; background: white; padding: 12px 18px; }
-        .track-header { margin-bottom: 6px; }
-        .track-date { color: #2c3e50; font-size: 15px; font-weight: bold; }
-        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 6px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; border-top: 1px solid #eee; padding-top: 8px; margin-bottom: 8px; }
         .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 14px; width: 20px; text-align: center; }
-        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px dotted #ccc; padding-top: 8px; }
+        
+        /* Riga Bottoni */
+        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 8px; }
         .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-        .btn-mini-gpx { background: #27ae60; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px; }
+        .btn-group { display: flex; gap: 5px; }
+        .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px; color: white; display: flex; align-items: center; gap: 3px; }
+        .btn-gpx { background: #27ae60; }
+        .btn-alt { background: #3498db; }
+
+        /* POPUP ALTIMETRIA DRAGGABILE */
+        #alt-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; background: white; z-index: 2000;
+            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4);
+            display: none; flex-direction: column; border: 1px solid #2c3e50;
+        }
+        #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        #alt-content { padding: 15px; background: white; }
+        canvas { width: 100% !important; height: 200px !important; }
+
         .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         #lista-tracce::-webkit-scrollbar { display: none; }
     </style>
@@ -39,6 +58,17 @@
         <button class="close-btn" onclick="chiudiMenu()">×</button>
     </div>
     <div id="lista-tracce"></div>
+</div>
+
+<!-- Popup Altimetria -->
+<div id="alt-popup">
+    <div id="alt-header">
+        <span id="alt-title" style="font-size: 12px; font-weight: bold;">ALTIMETRIA</span>
+        <button class="close-btn" onclick="chiudiAltimetria()">×</button>
+    </div>
+    <div id="alt-content">
+        <canvas id="altChart"></canvas>
+    </div>
 </div>
 
 <div id="map"></div>
@@ -60,7 +90,7 @@
     let cacheVisualizzata = {};
     let markerRicerca = null;
     let currentHighlightedId = null;
-    let totalTracce = 0;
+    let chartInstance = null;
 
     const stileDefault = { color: '#3498db', weight: 3, opacity: 0.4 };
     const stileAttivo = { color: '#e67e22', weight: 8, opacity: 1 };
@@ -118,12 +148,9 @@
             click_lat: lat, click_lon: lng, raggio_metri: 500
         });
 
-        if (error || !data.length) {
-            chiudiMenu();
-            return;
-        }
+        if (error || !data.length) { chiudiMenu(); return; }
 
-        totalTracce = data.length;
+        const total = data.length;
         listaTracce.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
 
@@ -135,7 +162,7 @@
             card.className = 'track-card';
             card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
+                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">${info.ora}</span></span></div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
@@ -144,21 +171,22 @@
                 </div>
                 <div class="file-row">
                     <span class="file-name">📄 ${t.nome_file}</span>
-                    <button class="btn-mini-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
+                    <div class="btn-group">
+                        <button class="btn-action btn-alt" onclick="mostraAltimetria(${t.id}, '${t.nome_file}')">📈 ALT</button>
+                        <button class="btn-action btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
+                    </div>
                 </div>
             `;
             listaTracce.appendChild(card);
         });
 
         listaTracce.scrollLeft = 0;
-        aggiornaVistaTraccia(data[0].id, 1);
+        aggiornaVistaTraccia(data[0].id, 1, total);
     }
 
-    function aggiornaVistaTraccia(id, currentX) {
-        document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${totalTracce}`;
-        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
-            cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
-        }
+    function aggiornaVistaTraccia(id, currentX, total) {
+        document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${total || totalTracce}`;
+        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
         currentHighlightedId = id;
         const poly = cacheVisualizzata[id];
         if (poly) {
@@ -167,40 +195,98 @@
         }
     }
 
+    // --- LOGICA ALTIMETRIA ---
+    async function mostraAltimetria(id, nome) {
+        const { data, error } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
+        if (error || !data.Altimetria) return alert("Dati altimetria non disponibili");
+
+        const altData = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
+        const labels = altData.map(p => p[0].toFixed(2)); // Distanza
+        const elevations = altData.map(p => p[1]);        // Quota
+
+        const ctx = document.getElementById('altChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Quota (m)',
+                    data: elevations,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    fill: true,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Km', font: { size: 10 } }, ticks: { font: { size: 8 } } },
+                    y: { title: { display: true, text: 'm', font: { size: 10 } }, ticks: { font: { size: 8 } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 30);
+        document.getElementById('alt-popup').style.display = 'flex';
+    }
+
+    function chiudiAltimetria() { document.getElementById('alt-popup').style.display = 'none'; }
+
+    // --- DRAGGABLE LOGIC ---
+    function makeDraggable(el, handle) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        handle.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            el.style.top = (el.offsetTop - pos2) + "px";
+            el.style.left = (el.offsetLeft - pos1) + "px";
+            el.style.transform = "none"; // Rimuove il centering per permettere il drag libero
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    makeDraggable(document.getElementById("alt-popup"), document.getElementById("alt-header"));
+
     function chiudiMenu() {
         document.getElementById('menu').style.display = 'none';
         if (markerRicerca) map.removeLayer(markerRicerca);
-        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
-            cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
-        }
+        if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) cacheVisualizzata[currentHighlightedId].setStyle(stileDefault);
         currentHighlightedId = null;
     }
 
-    // FUNZIONE SCARICA CORRETTA PER JSONB
     async function scarica(id, nome) {
-        const { data, error } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
-        if (error || !data) return;
-
-        // Se CoordLight è già un oggetto (JSONB), non serve JSON.parse
+        const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
         let punti = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
-        
-        let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><name>${nome}</name></metadata>
-  <trk><name>${nome}</name><trkseg>`;
-        
-        punti.forEach(p => {
-            if (p && p.length >= 2) gpx += `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
-        });
-
+        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${nome}</name></metadata><trk><name>${nome}</name><trkseg>`;
+        punti.forEach(p => { if (p && p.length >= 2) gpx += `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`; });
         gpx += `\n</trkseg></trk></gpx>`;
-
         const blob = new Blob([gpx], { type: 'application/gpx+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`; a.click();
     }
 
     map.on('moveend', caricaArea);
