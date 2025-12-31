@@ -47,10 +47,10 @@
         .btn-group { display: flex; gap: 4px; }
         .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
 
-        /* Popups */
+        /* Modali */
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
-        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; }
-        .modal-box textarea { width: 100%; height: 60px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-box textarea { width: 100%; height: 100px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; resize: none; font-family: inherit; }
 
         #alt-popup {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -60,6 +60,8 @@
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
         canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
         .close-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1; }
+        
+        .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -89,16 +91,27 @@
         <div id="lista-tracce"></div>
     </div>
 
+    <!-- MODAL EDIT NOTE -->
+    <div id="note-modal" class="custom-modal">
+        <div class="modal-box">
+            <h4 style="margin:0">MODIFICA NOTE</h4>
+            <p id="note-file-title" style="font-size:10px; color:#666; margin: 5px 0;"></p>
+            <textarea id="edit-note-input" placeholder="Scrivi qui le tue note..."></textarea>
+            <button class="btn-save" onclick="salvaNotaModificata()">SALVA MODIFICHE</button>
+            <button onclick="document.getElementById('note-modal').style.display='none'" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:11px;">Annulla</button>
+        </div>
+    </div>
+
+    <!-- MODAL IMPORT -->
     <div id="import-modal" class="custom-modal">
         <div class="modal-box">
             <h4 style="margin:0">DETTAGLI PERCORSO</h4>
             <p id="nome-file-info" style="font-size:11px; font-weight:bold; color:#2c3e50; margin: 10px 0;"></p>
-            <textarea id="note-input" placeholder="Inserisci note..."></textarea>
+            <textarea id="note-import-input" placeholder="Note iniziali..."></textarea>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button onclick="salvaTraccia('MTB')" style="background:#e74c3c; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">MTB</button>
                 <button onclick="salvaTraccia('Trekking')" style="background:#3498db; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">TREKKING</button>
             </div>
-            <button onclick="document.getElementById('import-modal').style.display='none'" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:11px;">Annulla</button>
         </div>
     </div>
 
@@ -116,7 +129,7 @@
 <script>
     const supabaseClient = supabase.createClient('https://afdbrcywdooycvipzovs.supabase.co', 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn');
     
-    let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null;
+    let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
 
     // --- AUTH ---
@@ -198,7 +211,7 @@
                 <div class="file-row">
                     <span class="file-name">📄 ${t.nome_file}</span>
                     <div class="btn-group">
-                        <button class="btn-action" style="background:${noteVal.trim() ? '#e74c3c' : '#000'}" onclick="alert('NOTE:\\n\\n'+'${noteVal.replace(/'/g,"\\'") || 'Nessuna nota'}')">📝 NOTE</button>
+                        <button class="btn-action" style="background:${noteVal.trim() ? '#e74c3c' : '#000'}" onclick="apriEditorNote(${t.id}, '${t.nome_file}', '${noteVal.replace(/'/g,"\\'")}')">📝 NOTE</button>
                         <button class="btn-action btn-alt" onclick="mostraAlt(${t.id},'${t.nome_file}')">📈 ALT</button>
                         <button class="btn-action btn-gpx" style="background:#27ae60" onclick="scarica(${t.id},'${t.nome_file}')">💾 GPX</button>
                     </div>
@@ -208,6 +221,28 @@
         lista.scrollLeft = 0; aggiornaVista(data[0].id, 1);
     }
 
+    // --- GESTIONE NOTE ---
+    function apriEditorNote(id, nome, noteAttuali) {
+        idInModifica = id;
+        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
+        document.getElementById('edit-note-input').value = noteAttuali === "undefined" ? "" : noteAttuali;
+        document.getElementById('note-modal').style.display = 'flex';
+    }
+
+    async function salvaNotaModificata() {
+        const nuovaNota = document.getElementById('edit-note-input').value;
+        const { error } = await supabaseClient.from('Tracce').update({ Note: nuovaNota }).eq('id', idInModifica);
+        
+        if (error) {
+            alert("Errore nel salvataggio: " + error.message);
+        } else {
+            document.getElementById('note-modal').style.display = 'none';
+            // Aggiorna il colore del tasto nella card senza ricaricare tutto (opzionale, qui ricarichiamo la ricerca per semplicità)
+            if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng);
+        }
+    }
+
+    // --- UTILS ---
     function aggiornaVista(id, cur) {
         document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`;
         if (highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 });
@@ -220,7 +255,13 @@
     function cambiaRecord(dir) { list.scrollBy({ left: dir * list.offsetWidth, behavior: 'smooth' }); }
     function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId=null; }
 
-    // --- IMPORT / EXPORT ---
+    // --- IMPORT / EXPORT / ALT ---
+    async function salvaTraccia(tipo) {
+        tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-import-input').value;
+        const { error } = await supabaseClient.from('Tracce').insert([tempImport]);
+        if (error) alert(error.message); else location.reload();
+    }
+
     async function avviaImport(ev) {
         const file = ev.target.files[0]; if (!file) return;
         const reader = new FileReader();
@@ -247,11 +288,7 @@
         };
         reader.readAsText(file);
     }
-    async function salvaTraccia(tipo) {
-        tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-input').value;
-        const { error } = await supabaseClient.from('Tracce').insert([tempImport]);
-        if (error) alert(error.message); else location.reload();
-    }
+
     async function scarica(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
         let pts = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
@@ -259,6 +296,7 @@
         const b = new Blob([gpx], { type: 'application/gpx+xml' });
         const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${nome}.gpx`; a.click();
     }
+
     async function mostraAlt(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
         const ad = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
@@ -267,7 +305,7 @@
         document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20); document.getElementById('alt-popup').style.display='flex';
     }
 
-    // Drag
+    // Drag popup
     const ap = document.getElementById("alt-popup"), ah = document.getElementById("alt-header");
     ah.onmousedown = (e) => { e.preventDefault(); let p3=e.clientX, p4=e.clientY; document.onmouseup=()=>document.onmousemove=null; document.onmousemove=(e)=>{ let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; }; };
 
