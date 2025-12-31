@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; z-index: 1; }
         
         /* Bottone Upload in alto a DX */
@@ -19,55 +19,66 @@
             width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
             cursor: pointer; font-size: 18px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);
         }
-        .upload-floating-btn:hover { background: #f4f4f4; }
 
-        /* Menu Inferiore */
+        /* Menu Inferiore Carosello */
         #menu {
             position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1000;
             background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
             display: none; flex-direction: column; border: 1px solid #ccc;
         }
-        .menu-header { background: #2c3e50; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; flex-grow: 1; text-align: center; }
-        
+        .menu-header { background: #2c3e50; color: white; padding: 5px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; flex-grow: 1; text-align: center; }
         .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
+
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch; }
         #lista-tracce::-webkit-scrollbar { display: none; }
 
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; background: white; padding: 12px 18px; }
-        .track-date { color: #2c3e50; font-size: 15px; font-weight: bold; }
-        .track-time { font-size: 11px; color: #7f8c8d; font-weight: normal; margin-left: 6px; }
+        .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
+        .track-time { font-size: 10px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; border-top: 1px solid #eee; padding-top: 8px; margin-bottom: 8px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 14px; width: 20px; text-align: center; }
         
-        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 8px; }
-        .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
+        .file-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-note { font-size: 9px; color: #3498db; font-style: italic; }
         
         .btn-group { display: flex; gap: 5px; }
         .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 10px; color: white; display: flex; align-items: center; gap: 3px; }
         .btn-gpx { background: #27ae60; }
         .btn-alt { background: #3498db; }
 
+        /* Popup Altimetria */
         #alt-popup {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 90%; max-width: 500px; background: white; z-index: 2000;
+            width: 90%; max-width: 450px; background: white; z-index: 2000;
             border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4);
             display: none; flex-direction: column; border: 1px solid #2c3e50;
         }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        #alt-content { padding: 15px; background: white; }
-        canvas { width: 100% !important; height: 200px !important; }
+        canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
+
+        /* Modal Importazione */
+        #import-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center;
+        }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; }
+        .modal-box textarea { width: 100%; height: 60px; margin: 10px 0; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 13px; }
+        .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-mtb { background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-trk { background: #3498db; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<!-- Bottone Caricamento in alto a DX -->
 <label class="upload-floating-btn" title="Importa GPX">
-    📤 <input type="file" id="import-file" accept=".gpx" style="display:none" onchange="importaGPX(event)">
+    📤 <input type="file" id="import-file" accept=".gpx" style="display:none" onchange="avviaImportazione(event)">
 </label>
 
 <div id="menu">
@@ -82,10 +93,23 @@
 
 <div id="alt-popup">
     <div id="alt-header">
-        <span id="alt-title" style="font-size: 11px; font-weight: bold;">ALTIMETRIA</span>
+        <span id="alt-title" style="font-size: 10px; font-weight: bold;">ALTIMETRIA</span>
         <button class="close-btn" onclick="chiudiAltimetria()">×</button>
     </div>
-    <div id="alt-content"><canvas id="altChart"></canvas></div>
+    <canvas id="altChart"></canvas>
+</div>
+
+<div id="import-modal">
+    <div class="modal-box">
+        <h4 style="margin:0 0 10px 0; font-size:14px;">DETTAGLI IMPORTAZIONE</h4>
+        <label style="font-size:11px; color:#666;">Note percorso:</label>
+        <textarea id="import-note" placeholder="Inserisci note (opzionale)..."></textarea>
+        <div class="modal-btns">
+            <button class="btn-mtb" onclick="concludiImport('MTB')">MTB</button>
+            <button class="btn-trk" onclick="concludiImport('Trekking')">TREKKING</button>
+        </div>
+        <button onclick="document.getElementById('import-modal').style.display='none'" style="width:100%; background:none; border:none; color:#999; font-size:11px; margin-top:10px; cursor:pointer;">Annulla</button>
+    </div>
 </div>
 
 <div id="map"></div>
@@ -109,11 +133,11 @@
     let currentHighlightedId = null;
     let chartInstance = null;
     let totalTracce = 0;
+    let tempImportData = null;
 
-    // COLORI RICHIESTI
-    const COLOR_MTB = '#e74c3c'; // ROSSO
-    const COLOR_TREKKING = '#3498db'; // BLU
-    const COLOR_ACTIVE = '#f39c12'; // ARANCIONE EVIDENZIATO
+    const COLOR_MTB = '#e74c3c';
+    const COLOR_TREKKING = '#3498db';
+    const COLOR_ACTIVE = '#f39c12';
 
     function formattaDataOra(unix) {
         if (!unix) return { data: "N.D.", ora: "" };
@@ -124,12 +148,81 @@
         };
     }
 
-    // --- LOGICA MAPPA E AREA ---
+    // --- LOGICA IMPORTAZIONE ---
+    function calcolaDistanza(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function DouglasPeucker(points, epsilon) {
+        let dmax = 0, index = 0;
+        for (let i = 1; i < points.length - 1; i++) {
+            const d = Math.abs((points[points.length-1][1]-points[0][1])*points[i][0] - (points[points.length-1][0]-points[0][0])*points[i][1] + points[points.length-1][0]*points[0][1] - points[points.length-1][1]*points[0][0]) / Math.sqrt(Math.pow(points[points.length-1][1]-points[0][1],2) + Math.pow(points[points.length-1][0]-points[0][0],2));
+            if (d > dmax) { index = i; dmax = d; }
+        }
+        return dmax > epsilon ? DouglasPeucker(points.slice(0, index + 1), epsilon).slice(0, -1).concat(DouglasPeucker(points.slice(index), epsilon)) : [points[0], points[points.length - 1]];
+    }
+
+    async function avviaImportazione(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const xml = new DOMParser().parseFromString(e.target.result, "text/xml");
+            const pts = xml.querySelectorAll("trkpt");
+            if (pts.length === 0) return alert("GPX vuoto");
+
+            let originali = [], altData = [], dist = 0, gain = 0, start = null, end = null;
+            pts.forEach((pt, i) => {
+                const lat = parseFloat(pt.getAttribute("lat")), lon = parseFloat(pt.getAttribute("lon")), ele = parseFloat(pt.querySelector("ele")?.textContent || 0), time = pt.querySelector("time")?.textContent;
+                originali.push([lat, lon]);
+                if (i > 0) {
+                    dist += calcolaDistanza(originali[i-1][0], originali[i-1][1], lat, lon);
+                    const elePrec = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0);
+                    if (ele > elePrec) gain += (ele - elePrec);
+                }
+                altData.push([parseFloat(dist.toFixed(2)), Math.round(ele)]);
+                if (i === 0) start = time; end = time;
+            });
+
+            const dataUnix = start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000);
+            let dur = "--:--"; 
+            if(start && end) { 
+                const diff = new Date(end) - new Date(start); 
+                dur = `${Math.floor(diff/3600000).toString().padStart(2,'0')}:${Math.floor((diff%3600000)/60000).toString().padStart(2,'0')}`; 
+            }
+
+            tempImportData = {
+                NomeFile: dataUnix.toString(),
+                Data: dataUnix,
+                Lunghezza: parseFloat(dist.toFixed(2)), 
+                Dislivello: Math.round(gain).toString(), 
+                Durata: dur, 
+                CoordLight: DouglasPeucker(originali, 0.00005), 
+                Altimetria: altData
+            };
+
+            document.getElementById('import-note').value = "";
+            document.getElementById('import-modal').style.display = 'flex';
+        };
+        reader.readAsText(file);
+    }
+
+    async function concludiImport(tipo) {
+        tempImportData.TipoPercorso = tipo;
+        tempImportData.Note = document.getElementById('import-note').value;
+        const { error } = await supabaseClient.from('Tracce').insert([tempImportData]);
+        if (error) alert(error.message); else { alert("Importato!"); location.reload(); }
+    }
+
+    // --- GESTIONE MAPPA ---
     async function caricaArea() {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', {
-            min_lat: b.getSouth(), min_lon: b.getWest(),
-            max_lat: b.getNorth(), max_lon: b.getEast()
+            min_lat: b.getSouth(), min_lon: b.getWest(), max_lat: b.getNorth(), max_lon: b.getEast()
         });
         if (error) return;
         data.forEach(t => {
@@ -137,9 +230,8 @@
                 const geo = JSON.parse(t.geojson);
                 const color = t.tipo_percorso === 'MTB' ? COLOR_MTB : COLOR_TREKKING;
                 const poly = L.polyline(geo.coordinates.map(c => [c[1], c[0]]), {
-                    color: color, weight: 3, opacity: 0.6, tipo: t.tipo_percorso
+                    color: color, weight: 3, opacity: 0.5, tipo: t.tipo_percorso
                 }).addTo(tracceLayer);
-                
                 cacheVisualizzata[t.id] = poly;
                 poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng); });
             }
@@ -153,11 +245,8 @@
         scrollTimeout = setTimeout(() => {
             const index = Math.round(listaTracce.scrollLeft / listaTracce.offsetWidth);
             const card = listaTracce.children[index];
-            if (card) {
-                const id = card.getAttribute('data-id');
-                aggiornaVistaTraccia(id, index + 1);
-            }
-        }, 100);
+            if (card) aggiornaVistaTraccia(card.getAttribute('data-id'), index + 1);
+        }, 150);
     });
 
     function cambiaRecord(direzione) {
@@ -182,21 +271,23 @@
 
         data.forEach(t => {
             const info = formattaDataOra(t.data_unix);
-            const iconaTipo = (t.tipo_percorso || '').toUpperCase().includes('MTB') ? '🚵' : '🥾';
-            
+            const icona = (t.tipo_percorso || '').toUpperCase().includes('MTB') ? '🚵' : '🥾';
             const card = document.createElement('div');
             card.className = 'track-card';
             card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">${info.ora}</span></span></div>
+                <div class="track-header"><span class="track-date">📅 ${info.data} <span class="track-time">ore ${info.ora}</span></span></div>
                 <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-icon">${iconaTipo}</span> ${t.tipo_percorso || 'MTB'}</div>
+                    <div class="stat-item"><span class="stat-icon">${icona}</span> ${t.tipo_percorso || 'MTB'}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
                     <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello || 0}m</div>
                     <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata || '--'}</div>
                 </div>
                 <div class="file-row">
-                    <span class="file-name">📄 ${t.nome_file}</span>
+                    <div class="file-info">
+                        <span class="file-name">📄 ${t.nome_file}</span>
+                        ${t.Note ? `<span class="file-note">📝 ${t.Note}</span>` : ''}
+                    </div>
                     <div class="btn-group">
                         <button class="btn-action btn-alt" onclick="mostraAltimetria(${t.id}, '${t.nome_file}')">📈 ALT</button>
                         <button class="btn-action btn-gpx" onclick="scarica(${t.id}, '${t.nome_file}')">💾 GPX</button>
@@ -212,13 +303,10 @@
 
     function aggiornaVistaTraccia(id, currentX) {
         document.getElementById('count-label').innerText = `TRACCIA ${currentX} DI ${totalTracce}`;
-        
-        // Ripristino colore precedente basato sul tipo
         if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
             const t = cacheVisualizzata[currentHighlightedId];
-            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.6 });
+            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.5 });
         }
-
         currentHighlightedId = id;
         const poly = cacheVisualizzata[id];
         if (poly) {
@@ -227,59 +315,6 @@
         }
     }
 
-    // --- ALGORITMI DI IMPORTAZIONE E SEMPLIFICAZIONE ---
-    function calcolaDistanza(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-
-    function DouglasPeucker(points, epsilon) {
-        let dmax = 0, index = 0;
-        for (let i = 1; i < points.length - 1; i++) {
-            const d = Math.abs((points[points.length-1][1]-points[0][1])*points[i][0] - (points[points.length-1][0]-points[0][0])*points[i][1] + points[points.length-1][0]*points[0][1] - points[points.length-1][1]*points[0][0]) / Math.sqrt(Math.pow(points[points.length-1][1]-points[0][1],2) + Math.pow(points[points.length-1][0]-points[0][0],2));
-            if (d > dmax) { index = i; dmax = d; }
-        }
-        return dmax > epsilon ? DouglasPeucker(points.slice(0, index + 1), epsilon).slice(0, -1).concat(DouglasPeucker(points.slice(index), epsilon)) : [points[0], points[points.length - 1]];
-    }
-
-    async function importaGPX(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const xml = new DOMParser().parseFromString(e.target.result, "text/xml");
-            const pts = xml.querySelectorAll("trkpt");
-            let originali = [], altData = [], dist = 0, gain = 0, start = null, end = null;
-            
-            pts.forEach((pt, i) => {
-                const lat = parseFloat(pt.getAttribute("lat")), lon = parseFloat(pt.getAttribute("lon")), ele = parseFloat(pt.querySelector("ele")?.textContent || 0), time = pt.querySelector("time")?.textContent;
-                originali.push([lat, lon]);
-                if (i > 0) {
-                    dist += calcolaDistanza(originali[i-1][0], originali[i-1][1], lat, lon);
-                    if (ele > parseFloat(pts[i-1].querySelector("ele")?.textContent || 0)) gain += (ele - parseFloat(pts[i-1].querySelector("ele")?.textContent || 0));
-                }
-                altData.push([parseFloat(dist.toFixed(2)), Math.round(ele)]);
-                if (i === 0) start = time; end = time;
-            });
-
-            const simplified = DouglasPeucker(originali, 0.00005);
-            let dur = "--:--"; if(start && end) { const diff = new Date(end) - new Date(start); dur = `${Math.floor(diff/3600000).toString().padStart(2,'0')}:${Math.floor((diff%3600000)/60000).toString().padStart(2,'0')}`; }
-
-            const tipo = confirm("OK per MTB (Rosso), Annulla per Trekking (Blu)") ? "MTB" : "Trekking";
-            const { error } = await supabaseClient.from('Tracce').insert([{
-                NomeFile: xml.querySelector("name")?.textContent || file.name.replace(".gpx",""),
-                Data: start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000),
-                Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: dur, TipoPercorso: tipo, CoordLight: simplified, Altimetria: altData
-            }]);
-            if (error) alert(error.message); else { alert("Importato!"); location.reload(); }
-        };
-        reader.readAsText(file);
-    }
-
-    // --- ALTIMETRIA E UTILITY ---
     async function mostraAltimetria(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
         const altData = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
@@ -289,7 +324,7 @@
             data: { labels: altData.map(p => p[0]), datasets: [{ label: 'Quota', data: altData.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
-        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20);
+        document.getElementById('alt-title').innerText = "📈 " + nome;
         document.getElementById('alt-popup').style.display = 'flex';
     }
 
@@ -299,7 +334,7 @@
         if (markerRicerca) map.removeLayer(markerRicerca);
         if (currentHighlightedId && cacheVisualizzata[currentHighlightedId]) {
             const t = cacheVisualizzata[currentHighlightedId];
-            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.6 });
+            t.setStyle({ color: t.options.tipo === 'MTB' ? COLOR_MTB : COLOR_TREKKING, weight: 3, opacity: 0.5 });
         }
         currentHighlightedId = null;
     }
@@ -315,7 +350,6 @@
         const a = document.createElement('a'); a.href = url; a.download = `${nome.replace(/\s+/g, '_')}.gpx`; a.click();
     }
 
-    // Drag popup
     function makeDraggable(el, handle) {
         let p1=0,p2=0,p3=0,p4=0; handle.onmousedown = (e) => { e.preventDefault(); p3=e.clientX; p4=e.clientY; document.onmouseup=()=>document.onmousemove=null; document.onmousemove=(e)=>{ p1=p3-e.clientX; p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; el.style.top=(el.offsetTop-p2)+"px"; el.style.left=(el.offsetLeft-p1)+"px"; el.style.transform="none"; }; };
     }
