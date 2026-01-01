@@ -53,7 +53,7 @@
         #alt-popup {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 95%; max-width: 450px; background: white; z-index: 4000;
-            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column;
+            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column; color: #333;
         }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
         canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
@@ -189,25 +189,33 @@
         });
     }
 
-    async function eseguiRicerca(lat, lng) {
+    async function eseguiRicerca(lat, lng, highlightId = null) {
         if (markerClick) map.removeLayer(markerClick);
         markerClick = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', { click_lat: lat, click_lon: lng, raggio_metri: 500 });
         if (error || !data.length) { chiudiMenu(); return; }
+        
         const ids = data.map(d => d.id);
         const { data: details } = await supabaseClient.from('Tracce').select('id, Note, Creatore').in('id', ids);
         const detailsMap = Object.fromEntries((details || []).map(d => [d.id, d]));
+        
         total = data.length;
         const lista = document.getElementById('lista-tracce');
         lista.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
-        data.forEach(t => {
+        
+        let initialIndex = 0;
+        data.forEach((t, idx) => {
+            if (highlightId && t.id == highlightId) initialIndex = idx;
             const d = new Date(t.data_unix * 1000);
             const det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div>
+                <div class="track-header">
+                    <span class="track-date">📅 ${d.toLocaleDateString('it-IT')} 
+                    <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
@@ -227,14 +235,12 @@
             card.querySelector('.btn-gpx-item').addEventListener('click', () => scarica(t.id, t.nome_file));
             lista.appendChild(card);
         });
-        lista.scrollLeft = 0; aggiornaVista(data[0].id, 1);
-    }
-
-    function apriEditorNote(id, nome, noteAttuali) {
-        idInModifica = id;
-        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
-        document.getElementById('edit-note-input').value = noteAttuali || "";
-        document.getElementById('note-modal').style.display = 'flex';
+        
+        // Sposta lo scroll sulla traccia corretta
+        setTimeout(() => {
+            lista.scrollLeft = initialIndex * lista.offsetWidth;
+            aggiornaVista(data[initialIndex].id, initialIndex + 1);
+        }, 100);
     }
 
     async function salvaNotaModificata() {
@@ -243,7 +249,10 @@
         if (error) alert("Errore salvataggio: " + error.message);
         else {
             document.getElementById('note-modal').style.display = 'none';
-            if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng);
+            if (markerClick) {
+                const latlng = markerClick.getLatLng();
+                eseguiRicerca(latlng.lat, latlng.lng, idInModifica);
+            }
         }
     }
 
@@ -251,7 +260,10 @@
         document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`;
         if (highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 });
         highlightedId = id;
-        if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); }
+        if (cache[id]) { 
+            cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); 
+            map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); 
+        }
     }
 
     const listCont = document.getElementById('lista-tracce');
@@ -299,19 +311,27 @@
         tempImport.Note = document.getElementById('note-import-input').value;
         tempImport.Creatore = document.getElementById('creatore-input').value;
         
-        const { error } = await supabaseClient.from('Tracce').insert([tempImport]);
+        // 1. Inserimento
+        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
         
         if (error) {
-            // GESTIONE DUPLICATO
             if (error.code === '23505') {
-                document.getElementById('import-modal').style.display = 'none'; // Chiude il popup
-                alert("OPERAZIONE ANNULLATA: Questa traccia è già presente nell'archivio (Unix ID duplicato).");
-                tempImport = null; // Svuota i dati temporanei
-            } else {
-                alert("Errore inserimento: " + error.message);
-            }
+                document.getElementById('import-modal').style.display = 'none';
+                alert("Questa traccia esiste già nell'archivio!");
+            } else alert("Errore: " + error.message);
         } else {
-            location.reload();
+            // 2. Successo!
+            const nuovaTraccia = data[0];
+            document.getElementById('import-modal').style.display = 'none';
+            
+            // 3. Carica l'area geografica per far apparire la nuova linea sulla mappa
+            await caricaArea();
+            
+            // 4. Seleziona automaticamente la nuova traccia
+            const primaCoord = nuovaTraccia.CoordLight[0];
+            eseguiRicerca(primaCoord[0], primaCoord[1], nuovaTraccia.id);
+            
+            alert("Importazione completata!");
         }
     }
 
