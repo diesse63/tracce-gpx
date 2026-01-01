@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archivio Riservato Tracce</title>
+    <title>Archivio tracce GPX</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -17,26 +17,27 @@
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         #app-ui { display: none; }
-        /* Sistemazione pulsanti in alto per non coprire lo zoom */
-        .top-controls { position: absolute; top: 10px; right: 55px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
+        .top-controls { position: absolute; top: 10px; right: 60px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
         .ctrl-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-        .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; height: 36px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; }
+        .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; height: 36px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; }
 
-        /* Filtro Button Style dinamico */
         #btn-filter.active { background: #ff4757; color: white; border-color: #ff4757; }
 
         #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); display: none; flex-direction: column; border: 1px solid #ccc; }
         .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; }
         .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
+        
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; }
         #lista-tracce::-webkit-scrollbar { display: none; }
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; padding: 12px 18px; color: #333; }
         .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
         .track-time { font-size: 10px; color: #7f8c8d; margin-left: 5px; }
+        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 13px; width: 18px; text-align: center; }
+
         .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
         .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
         .btn-group { display: flex; gap: 4px; }
@@ -44,10 +45,13 @@
 
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
-        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .filter-grid label { grid-column: span 2; font-size: 11px; font-weight: bold; margin-top: 5px; color: #2c3e50; }
-        .modal-box input, .modal-box select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
-        .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .filter-section { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .filter-section label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+        .row { display: flex; gap: 8px; margin-bottom: 5px; }
+        .modal-box input, .modal-box select, .modal-box textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
+        .modal-box textarea { height: 80px; resize: none; }
+        
+        .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
         
         #alt-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 450px; background: white; z-index: 4000; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column; }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -59,7 +63,7 @@
 
 <div id="auth-screen">
     <div class="login-box">
-        <h2 style="margin-bottom:10px;">ACCESSO RISERVATO</h2>
+        <h2 style="margin-bottom:10px; font-size: 18px;">ARCHIVIO TRACCE GPX</h2>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="pass" placeholder="Password">
         <button id="btn-login-action">ENTRA</button>
@@ -68,37 +72,30 @@
 
 <div id="app-ui">
     <div class="top-controls">
-        <button id="btn-filter" class="ctrl-btn" title="Filtra Tracce">🔍</button>
-        <label class="ctrl-btn" title="Importa GPX">📤 <input type="file" id="input-gpx" accept=".gpx" style="display:none"></label>
+        <button id="btn-filter" class="ctrl-btn" title="Filtra">🔍</button>
+        <label class="ctrl-btn" title="Importa">📤 <input type="file" id="input-gpx" accept=".gpx" style="display:none"></label>
         <button class="logout-btn" id="btn-logout-action">LOGOUT</button>
     </div>
 
     <!-- MODAL FILTRI -->
     <div id="filter-modal" class="custom-modal">
         <div class="modal-box">
-            <h4 style="margin:0">FILTRA ARCHIVIO</h4>
-            <div class="filter-grid">
-                <label>Data (Mese - Anno)</label>
-                <select id="f-month">
-                    <option value="">Mese</option>
-                    <option value="1">Gennaio</option><option value="2">Febbraio</option>
-                    <option value="3">Marzo</option><option value="4">Aprile</option>
-                    <option value="5">Maggio</option><option value="6">Giugno</option>
-                    <option value="7">Luglio</option><option value="8">Agosto</option>
-                    <option value="9">Settembre</option><option value="10">Ottobre</option>
-                    <option value="11">Novembre</option><option value="12">Dicembre</option>
-                </select>
-                <input type="number" id="f-year" placeholder="YYYY" min="2015" max="2026">
-
-                <label>Dislivello (m) [0 - 3000]</label>
-                <input type="number" id="f-min-disl" placeholder="Min" value="0">
-                <input type="number" id="f-max-disl" placeholder="Max" value="3000">
-
-                <label>Lunghezza (km) [0 - 200]</label>
-                <input type="number" id="f-min-len" placeholder="Min" value="0">
-                <input type="number" id="f-max-len" placeholder="Max" value="200">
+            <h4 style="margin:0 0 15px 0">FILTRA ARCHIVIO</h4>
+            <div class="filter-section">
+                <label>Da (Mese/Anno)</label>
+                <div class="row"><select id="f-m-start"></select><select id="f-y-start" class="year-select"></select></div>
+                <label style="margin-top:8px">A (Mese/Anno)</label>
+                <div class="row"><select id="f-m-end"></select><select id="f-y-end" class="year-select"></select></div>
             </div>
-            <button class="btn-save" id="btn-apply-filters">CONFERMA</button>
+            <div class="filter-section">
+                <label>Dislivello (m) [min - max]</label>
+                <div class="row"><input type="number" id="f-min-disl" value="0"><input type="number" id="f-max-disl" value="3000"></div>
+            </div>
+            <div class="filter-section">
+                <label>Lunghezza (km) [min - max]</label>
+                <div class="row"><input type="number" id="f-min-len" value="0"><input type="number" id="f-max-len" value="200"></div>
+            </div>
+            <button class="btn-save" id="btn-apply-filters">APPLICA FILTRI</button>
             <button id="btn-clear-filters" style="width:100%; background:#95a5a6; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; margin-top:8px;">ANNULLA FILTRI</button>
         </div>
     </div>
@@ -127,8 +124,8 @@
         <div class="modal-box">
             <h4 style="margin:0">DETTAGLI PERCORSO</h4>
             <p id="nome-file-info" style="font-size:10px; color:#666; margin: 8px 0;"></p>
-            <label style="font-size:11px;">Creatore:</label>
-            <input type="text" id="creatore-input" value="Daniele">
+            <label style="font-size:11px;">Creatore (modificabile ✏️):</label>
+            <input type="text" id="creatore-input">
             <textarea id="note-import-input" placeholder="Note iniziali..."></textarea>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button id="btn-save-mtb" style="background:#e74c3c; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">MTB</button>
@@ -153,12 +150,21 @@
     const supabaseClient = supabase.createClient('https://afdbrcywdooycvipzovs.supabase.co', 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn');
     
     let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
+    let currentUserName = "Daniele"; // Default fallback
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
 
-    // STATO FILTRI
-    let activeFilters = { month: null, year: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
+    let activeFilters = { start: null, end: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
 
-    // EVENTI UI
+    function setupDropdowns() {
+        const months = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+        const mStart = document.getElementById('f-m-start'), mEnd = document.getElementById('f-m-end');
+        mStart.innerHTML = mEnd.innerHTML = '<option value="">Mese</option>' + months.map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
+        const yearSelects = document.querySelectorAll('.year-select');
+        let yearOptions = '<option value="">Anno</option>';
+        for (let y = 2018; y <= 2035; y++) yearOptions += `<option value="${y}">${y}</option>`;
+        yearSelects.forEach(s => s.innerHTML = yearOptions);
+    }
+
     document.getElementById('btn-login-action').addEventListener('click', login);
     document.getElementById('btn-logout-action').addEventListener('click', logout);
     document.getElementById('btn-prev').addEventListener('click', () => cambiaRecord(-1));
@@ -169,37 +175,38 @@
     document.getElementById('btn-save-mtb').addEventListener('click', () => salvaTraccia('MTB'));
     document.getElementById('btn-save-trk').addEventListener('click', () => salvaTraccia('Trekking'));
     document.getElementById('btn-cancel-import').addEventListener('click', () => document.getElementById('import-modal').style.display='none');
-    document.getElementById('input-gpx').addEventListener('change', avviaImport);
-    document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', () => document.getElementById('note-modal').style.display = 'none'));
-
-    // EVENTI FILTRI
     document.getElementById('btn-filter').addEventListener('click', () => document.getElementById('filter-modal').style.display='flex');
     document.getElementById('btn-apply-filters').addEventListener('click', applicaFiltri);
     document.getElementById('btn-clear-filters').addEventListener('click', resetFiltri);
+    document.getElementById('input-gpx').addEventListener('change', avviaImport);
+    document.querySelectorAll('.close-modal-btn').forEach(btn => btn.addEventListener('click', () => document.getElementById('note-modal').style.display = 'none'));
 
     async function login() {
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('pass').value;
+        const user = document.getElementById('username').value, pass = document.getElementById('pass').value;
         const email = user.includes('@') ? user : user + '@grifo.mtb';
         const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
         if (error) alert("Credenziali errate"); else checkSession();
     }
     async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
+    
     async function checkSession() {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
+            // Estrae il nome dall'email per usarlo come creatore predefinito
+            const emailName = user.email.split('@')[0];
+            currentUserName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+            
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-ui').style.display = 'block';
             document.getElementById('map').style.display = 'block';
-            initMap();
-            document.getElementById('btn-logout-action').innerText = "LOGOUT (" + user.email.split('@')[0].toUpperCase() + ")";
+            setupDropdowns(); initMap();
+            document.getElementById('btn-logout-action').innerText = "LOGOUT (" + currentUserName.toUpperCase() + ")";
         }
     }
 
     function initMap() {
         if (map) return;
         map = L.map('map', { zoomControl: true }).setView([42.85, 10.95], 13);
-        // Spostiamo lo zoom per non intralciare i pulsanti
         map.zoomControl.setPosition('topright');
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         tracceLayer = L.layerGroup().addTo(map);
@@ -208,58 +215,42 @@
         caricaArea();
     }
 
-    // LOGICA FILTRI
     function applicaFiltri() {
+        const ms = document.getElementById('f-m-start').value, ys = document.getElementById('f-y-start').value;
+        const me = document.getElementById('f-m-end').value, ye = document.getElementById('f-y-end').value;
         activeFilters = {
-            month: document.getElementById('f-month').value || null,
-            year: document.getElementById('f-year').value || null,
-            minDisl: document.getElementById('f-min-disl').value || 0,
-            maxDisl: document.getElementById('f-max-disl').value || 3000,
-            minLen: document.getElementById('f-min-len').value || 0,
-            maxLen: document.getElementById('f-max-len').value || 200,
+            start: (ms && ys) ? Math.floor(new Date(ys, ms - 1, 1).getTime() / 1000) : null,
+            end: (me && ye) ? Math.floor(new Date(ye, me, 0, 23, 59, 59).getTime() / 1000) : null,
+            minDisl: parseFloat(document.getElementById('f-min-disl').value) || 0,
+            maxDisl: parseFloat(document.getElementById('f-max-disl').value) || 3000,
+            minLen: parseFloat(document.getElementById('f-min-len').value) || 0,
+            maxLen: parseFloat(document.getElementById('f-max-len').value) || 200,
             isActive: true
         };
         document.getElementById('btn-filter').classList.add('active');
         document.getElementById('filter-modal').style.display = 'none';
-        refreshMappa();
+        tracceLayer.clearLayers(); cache = {}; caricaArea();
     }
 
     function resetFiltri() {
-        activeFilters = { month: null, year: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
-        document.getElementById('f-month').value = "";
-        document.getElementById('f-year').value = "";
-        document.getElementById('f-min-disl').value = 0;
-        document.getElementById('f-max-disl').value = 3000;
-        document.getElementById('f-min-len').value = 0;
-        document.getElementById('f-max-len').value = 200;
+        activeFilters = { start: null, end: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
         document.getElementById('btn-filter').classList.remove('active');
         document.getElementById('filter-modal').style.display = 'none';
-        refreshMappa();
-    }
-
-    function refreshMappa() {
-        tracceLayer.clearLayers();
-        cache = {};
-        caricaArea();
+        tracceLayer.clearLayers(); cache = {}; caricaArea();
     }
 
     async function caricaArea() {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', { 
             min_lat: b.getSouth(), min_lon: b.getWest(), max_lat: b.getNorth(), max_lon: b.getEast(),
-            f_month: activeFilters.month,
-            f_year: activeFilters.year,
-            f_min_disl: activeFilters.minDisl,
-            f_max_disl: activeFilters.maxDisl,
-            f_min_len: activeFilters.minLen,
-            f_max_len: activeFilters.maxLen
+            f_start: activeFilters.start, f_end: activeFilters.end,
+            f_min_disl: activeFilters.minDisl, f_max_disl: activeFilters.maxDisl,
+            f_min_len: activeFilters.minLen, f_max_len: activeFilters.maxLen
         });
         if (error) return;
         data.forEach(t => {
             if (!cache[t.id]) {
-                const poly = L.polyline(JSON.parse(t.geojson).coordinates.map(c => [c[1], c[0]]), { 
-                    color: t.tipo_percorso === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5, tipo: t.tipo_percorso 
-                }).addTo(tracceLayer);
+                const poly = L.polyline(JSON.parse(t.geojson).coordinates.map(c => [c[1], c[0]]), { color: t.tipo_percorso === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5, tipo: t.tipo_percorso }).addTo(tracceLayer);
                 cache[t.id] = poly;
                 poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng, t.id); });
             }
@@ -269,44 +260,32 @@
     async function eseguiRicerca(lat, lng, highlightId = null) {
         if (markerClick) map.removeLayer(markerClick);
         markerClick = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
-        
-        // La ricerca puntuale segue gli stessi filtri
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', { click_lat: lat, click_lon: lng, raggio_metri: 500 });
         if (error || !data.length) { chiudiMenu(); return; }
 
-        // Filtriamo i risultati della ricerca puntuale lato client per coerenza con la mappa
-        const filteredData = data.filter(t => {
-            const d = new Date(t.data_unix * 1000);
-            const m = d.getMonth() + 1;
-            const y = d.getFullYear();
-            const disl = parseFloat(t.dislivello) || 0;
-            const len = parseFloat(t.lunghezza) || 0;
-
-            if (activeFilters.isActive) {
-                if (activeFilters.month && m != activeFilters.month) return false;
-                if (activeFilters.year && y != activeFilters.year) return false;
-                if (disl < activeFilters.minDisl || disl > activeFilters.maxDisl) return false;
-                if (len < activeFilters.minLen || len > activeFilters.maxLen) return false;
-            }
+        const filtered = data.filter(t => {
+            if (!activeFilters.isActive) return true;
+            const d = parseInt(t.data_unix), disl = parseFloat(t.dislivello) || 0, len = parseFloat(t.lunghezza) || 0;
+            if (activeFilters.start && d < activeFilters.start) return false;
+            if (activeFilters.end && d > activeFilters.end) return false;
+            if (disl < activeFilters.minDisl || disl > activeFilters.maxDisl) return false;
+            if (len < activeFilters.minLen || len > activeFilters.maxLen) return false;
             return true;
         });
 
-        if (filteredData.length === 0) { chiudiMenu(); return; }
-
-        const ids = filteredData.map(d => d.id);
+        if (!filtered.length) { chiudiMenu(); return; }
+        const ids = filtered.map(d => d.id);
         const { data: details } = await supabaseClient.from('Tracce').select('id, Note, Creatore').in('id', ids);
         const detailsMap = Object.fromEntries((details || []).map(d => [d.id, d]));
         
-        total = filteredData.length;
+        total = filtered.length;
         const lista = document.getElementById('lista-tracce');
-        lista.innerHTML = "";
-        document.getElementById('menu').style.display = 'flex';
+        lista.innerHTML = ""; document.getElementById('menu').style.display = 'flex';
         
         let targetIdx = 0;
-        filteredData.forEach((t, idx) => {
+        filtered.forEach((t, idx) => {
             if (highlightId && t.id == highlightId) targetIdx = idx;
-            const d = new Date(t.data_unix * 1000);
-            const det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
+            const d = new Date(t.data_unix * 1000), det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
             card.innerHTML = `
@@ -330,24 +309,25 @@
             card.querySelector('.btn-gpx-item').addEventListener('click', () => scarica(t.id, t.nome_file));
             lista.appendChild(card);
         });
-        
-        setTimeout(() => {
-            lista.scrollLeft = targetIdx * lista.offsetWidth;
-            aggiornaVista(filteredData[targetIdx].id, targetIdx + 1);
-        }, 200);
+        setTimeout(() => { lista.scrollLeft = targetIdx * lista.offsetWidth; aggiornaVista(filtered[targetIdx].id, targetIdx + 1); }, 200);
+    }
+
+    async function salvaTraccia(tipo) {
+        tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-import-input').value; tempImport.Creatore = document.getElementById('creatore-input').value;
+        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
+        if (error) { if (error.code === '23505') { document.getElementById('import-modal').style.display = 'none'; alert("Traccia già presente!"); } else alert("Errore: " + error.message); return; }
+        document.getElementById('import-modal').style.display = 'none';
+        setTimeout(async () => { await caricaArea(); eseguiRicerca(data[0].CoordLight[0][0], data[0].CoordLight[0][1], data[0].id); alert("Completato!"); }, 800);
     }
 
     function apriEditorNote(id, nome, noteAttuali) {
-        idInModifica = id;
-        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
+        idInModifica = id; document.getElementById('note-file-title').innerText = "Traccia: " + nome;
         document.getElementById('edit-note-input').value = noteAttuali || "";
         document.getElementById('note-modal').style.display = 'flex';
     }
     async function salvaNotaModificata() {
-        const nuovaNota = document.getElementById('edit-note-input').value;
-        const { error } = await supabaseClient.from('Tracce').update({ Note: nuovaNota }).eq('id', idInModifica);
-        if (error) alert("Errore: " + error.message);
-        else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) { const latlng = markerClick.getLatLng(); eseguiRicerca(latlng.lat, latlng.lng, idInModifica); } }
+        const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica);
+        if (error) alert("Errore: " + error.message); else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica); }
     }
 
     function aggiornaVista(id, cur) {
@@ -356,16 +336,8 @@
         highlightedId = id;
         if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); }
     }
-
     const listCont = document.getElementById('lista-tracce');
-    listCont.addEventListener('scroll', () => {
-        clearTimeout(window.st);
-        window.st = setTimeout(() => {
-            const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth);
-            const card = listCont.children[idx];
-            if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1);
-        }, 150);
-    });
+    listCont.addEventListener('scroll', () => { clearTimeout(window.st); window.st = setTimeout(() => { const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); const card = listCont.children[idx]; if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); }, 150); });
     function cambiaRecord(dir) { listCont.scrollBy({ left: dir * listCont.offsetWidth, behavior: 'smooth' }); }
     function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId=null; }
 
@@ -389,27 +361,22 @@
             const dU = start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000);
             const DP = (p,e) => { let d=0,idx=0; for(let i=1;i<p.length-1;i++){ let dist=Math.abs((p[p.length-1][1]-p[0][1])*p[i][0]-(p[p.length-1][0]-p[0][0])*p[i][1]+p[p.length-1][0]*p[0][1]-p[p.length-1][1]*p[0][0])/Math.sqrt((p[p.length-1][1]-p[0][1])**2+(p[p.length-1][0]-p[0][0])**2); if(dist>d){idx=i;d=dist}} return d>e?DP(p.slice(0,idx+1),e).slice(0,-1).concat(DP(p.slice(idx),e)):[p[0],p[p.length-1]] };
             tempImport = { NomeFile: dU.toString(), Data: dU, Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: (start && end) ? `${Math.floor((new Date(end)-new Date(start))/3600000).toString().padStart(2,'0')}:${Math.floor(((new Date(end)-new Date(start))%3600000)/60000).toString().padStart(2,'0')}` : "--:--", CoordLight: DP(orig, 0.00005), Altimetria: alts };
+            
             document.getElementById('nome-file-info').innerText = "Traccia Unix: " + dU;
+            document.getElementById('creatore-input').value = currentUserName; // Imposta Creatore = Nome Utente Loggato
             document.getElementById('import-modal').style.display='flex';
         };
         reader.readAsText(file);
-    }
-    async function salvaTraccia(tipo) {
-        tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-import-input').value; tempImport.Creatore = document.getElementById('creatore-input').value;
-        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
-        if (error) { if (error.code === '23505') { document.getElementById('import-modal').style.display = 'none'; alert("Traccia già presente!"); } else alert("Errore: " + error.message); return; }
-        const nuova = data[0];
-        document.getElementById('import-modal').style.display = 'none';
-        setTimeout(async () => { await caricaArea(); const startPt = nuova.CoordLight[0]; eseguiRicerca(startPt[0], startPt[1], nuova.id); alert("Importazione completata!"); }, 800);
     }
 
     async function scarica(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
         let pts = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
-        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${nome}</name></metadata><trk><name>${nome}</name><trkseg>${pts.map(p => `\n<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join('')}\n</trkseg></trk></gpx>`;
+        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${nome}</name></metadata><trk><name>${nome}</name><trkseg>${pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join('')}</trkseg></trk></gpx>`;
         const b = new Blob([gpx], { type: 'application/gpx+xml' });
         const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${nome}.gpx`; a.click();
     }
+
     async function mostraAlt(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
         const ad = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;

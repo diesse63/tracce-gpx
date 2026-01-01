@@ -10,49 +10,38 @@
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a1a; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; display: none; }
-        
         #auth-screen { position: fixed; inset: 0; background: #1a1a1a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 340px; color: #333; text-align: center; }
         .login-box input { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
         #app-ui { display: none; }
         .top-controls { position: absolute; top: 10px; right: 60px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
         .ctrl-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
         .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; height: 36px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-
         #btn-filter.active { background: #ff4757; color: white; border-color: #ff4757; }
-
         #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); display: none; flex-direction: column; border: 1px solid #ccc; }
         .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; }
         .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
-        
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; }
         #lista-tracce::-webkit-scrollbar { display: none; }
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; padding: 12px 18px; color: #333; }
         .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
         .track-time { font-size: 10px; color: #7f8c8d; margin-left: 5px; }
-        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 13px; width: 18px; text-align: center; }
-
         .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
         .file-name { font-size: 10px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
         .btn-group { display: flex; gap: 4px; }
         .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
-
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
         .filter-section { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .filter-section label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
         .row { display: flex; gap: 8px; margin-bottom: 5px; }
         .modal-box input, .modal-box select, .modal-box textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
-        .modal-box textarea { height: 80px; resize: none; }
-        
         .btn-save { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
         #alt-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 450px; background: white; z-index: 4000; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column; }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
         canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
@@ -124,8 +113,8 @@
         <div class="modal-box">
             <h4 style="margin:0">DETTAGLI PERCORSO</h4>
             <p id="nome-file-info" style="font-size:10px; color:#666; margin: 8px 0;"></p>
-            <label style="font-size:11px;">Creatore (modificabile ✏️):</label>
-            <input type="text" id="creatore-input">
+            <label style="font-size:11px;">Creatore:</label>
+            <input type="text" id="creatore-input" value="">
             <textarea id="note-import-input" placeholder="Note iniziali..."></textarea>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button id="btn-save-mtb" style="background:#e74c3c; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">MTB</button>
@@ -150,19 +139,24 @@
     const supabaseClient = supabase.createClient('https://afdbrcywdooycvipzovs.supabase.co', 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn');
     
     let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
-    let currentUserName = "Daniele"; // Default fallback
+    let currentUserName = "Daniele";
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
 
-    let activeFilters = { start: null, end: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
+    let activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
 
     function setupDropdowns() {
         const months = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
         const mStart = document.getElementById('f-m-start'), mEnd = document.getElementById('f-m-end');
-        mStart.innerHTML = mEnd.innerHTML = '<option value="">Mese</option>' + months.map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
+        mStart.innerHTML = '<option value="1">Gennaio</option>' + months.slice(1).map((m, i) => `<option value="${i+2}">${m}</option>`).join('');
+        mEnd.innerHTML = months.slice(0, 11).map((m, i) => `<option value="${i+1}">${m}</option>`).join('') + '<option value="12" selected>Dicembre</option>';
+
         const yearSelects = document.querySelectorAll('.year-select');
-        let yearOptions = '<option value="">Anno</option>';
+        let yearOptions = '';
         for (let y = 2018; y <= 2035; y++) yearOptions += `<option value="${y}">${y}</option>`;
         yearSelects.forEach(s => s.innerHTML = yearOptions);
+        
+        document.getElementById('f-y-start').value = "2018";
+        document.getElementById('f-y-end').value = "2035";
     }
 
     document.getElementById('btn-login-action').addEventListener('click', login);
@@ -192,10 +186,8 @@
     async function checkSession() {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
-            // Estrae il nome dall'email per usarlo come creatore predefinito
             const emailName = user.email.split('@')[0];
             currentUserName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-            
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-ui').style.display = 'block';
             document.getElementById('map').style.display = 'block';
@@ -216,30 +208,36 @@
     }
 
     function applicaFiltri() {
-        const ms = document.getElementById('f-m-start').value, ys = document.getElementById('f-y-start').value;
-        const me = document.getElementById('f-m-end').value, ye = document.getElementById('f-y-end').value;
-        activeFilters = {
-            start: (ms && ys) ? Math.floor(new Date(ys, ms - 1, 1).getTime() / 1000) : null,
-            end: (me && ye) ? Math.floor(new Date(ye, me, 0, 23, 59, 59).getTime() / 1000) : null,
-            minDisl: parseFloat(document.getElementById('f-min-disl').value) || 0,
-            maxDisl: parseFloat(document.getElementById('f-max-disl').value) || 3000,
-            minLen: parseFloat(document.getElementById('f-min-len').value) || 0,
-            maxLen: parseFloat(document.getElementById('f-max-len').value) || 200,
-            isActive: true
-        };
+        const ms = parseInt(document.getElementById('f-m-start').value), ys = parseInt(document.getElementById('f-y-start').value);
+        const me = parseInt(document.getElementById('f-m-end').value), ye = parseInt(document.getElementById('f-y-end').value);
+        const minD = parseFloat(document.getElementById('f-min-disl').value), maxD = parseFloat(document.getElementById('f-max-disl').value);
+        const minL = parseFloat(document.getElementById('f-min-len').value), maxL = parseFloat(document.getElementById('f-max-len').value);
+
+        const startD = new Date(ys, ms - 1, 1);
+        const endD = new Date(ye, me, 0, 23, 59, 59);
+
+        if (startD > endD) return alert("ERRORE: La data d'inizio non può essere successiva alla fine.");
+        if (minD > maxD) return alert("ERRORE: Il dislivello minimo supera il massimo.");
+        if (minL > maxL) return alert("ERRORE: La lunghezza minima supera la massima.");
+
+        activeFilters = { start: Math.floor(startD.getTime()/1000), end: Math.floor(endD.getTime()/1000), minDisl: minD, maxDisl: maxD, minLen: minL, maxLen: maxL, isActive: true };
         document.getElementById('btn-filter').classList.add('active');
         document.getElementById('filter-modal').style.display = 'none';
-        tracceLayer.clearLayers(); cache = {}; caricaArea();
+        tracceLayer.clearLayers(); cache = {}; 
+        caricaArea(true);
     }
 
     function resetFiltri() {
-        activeFilters = { start: null, end: null, minDisl: null, maxDisl: null, minLen: null, maxLen: null, isActive: false };
+        setupDropdowns();
+        document.getElementById('f-min-disl').value = 0; document.getElementById('f-max-disl').value = 3000;
+        document.getElementById('f-min-len').value = 0; document.getElementById('f-max-len').value = 200;
+        activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
         document.getElementById('btn-filter').classList.remove('active');
         document.getElementById('filter-modal').style.display = 'none';
         tracceLayer.clearLayers(); cache = {}; caricaArea();
     }
 
-    async function caricaArea() {
+    async function caricaArea(showStatus = false) {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', { 
             min_lat: b.getSouth(), min_lon: b.getWest(), max_lat: b.getNorth(), max_lon: b.getEast(),
@@ -248,13 +246,16 @@
             f_min_len: activeFilters.minLen, f_max_len: activeFilters.maxLen
         });
         if (error) return;
+        let mtb = 0, trk = 0;
         data.forEach(t => {
+            if (t.tipo_percorso === 'MTB') mtb++; else trk++;
             if (!cache[t.id]) {
                 const poly = L.polyline(JSON.parse(t.geojson).coordinates.map(c => [c[1], c[0]]), { color: t.tipo_percorso === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5, tipo: t.tipo_percorso }).addTo(tracceLayer);
                 cache[t.id] = poly;
                 poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng, t.id); });
             }
         });
+        if(showStatus) alert(`Filtro applicato!\nTracce totali in questa zona: ${data.length}\n- MTB: ${mtb}\n- Trekking: ${trk}`);
     }
 
     async function eseguiRicerca(lat, lng, highlightId = null) {
@@ -288,22 +289,7 @@
             const d = new Date(t.data_unix * 1000), det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
-            card.innerHTML = `
-                <div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div>
-                <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div>
-                    <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
-                    <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div>
-                    <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div>
-                </div>
-                <div class="file-row">
-                    <span class="file-name">📄 ${t.nome_file}</span>
-                    <div class="btn-group">
-                        <button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button>
-                        <button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button>
-                        <button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button>
-                    </div>
-                </div>`;
+            card.innerHTML = `<div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div><div class="stats-grid"><div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div><div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div><div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div><div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div></div><div class="file-row"><span class="file-name">📄 ${t.nome_file}</span><div class="btn-group"><button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button><button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button><button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button></div></div>`;
             card.querySelector('.btn-note-item').addEventListener('click', () => apriEditorNote(t.id, t.nome_file, det.Note));
             card.querySelector('.btn-alt-item').addEventListener('click', () => mostraAlt(t.id, t.nome_file));
             card.querySelector('.btn-gpx-item').addEventListener('click', () => scarica(t.id, t.nome_file));
@@ -317,25 +303,17 @@
         const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
         if (error) { if (error.code === '23505') { document.getElementById('import-modal').style.display = 'none'; alert("Traccia già presente!"); } else alert("Errore: " + error.message); return; }
         document.getElementById('import-modal').style.display = 'none';
-        setTimeout(async () => { await caricaArea(); eseguiRicerca(data[0].CoordLight[0][0], data[0].CoordLight[0][1], data[0].id); alert("Completato!"); }, 800);
+        setTimeout(async () => {
+            tracceLayer.clearLayers(); cache = {}; // Pulisce per ricaricare la nuova
+            await caricaArea();
+            const startPt = data[0].CoordLight[0];
+            eseguiRicerca(startPt[0], startPt[1], data[0].id);
+        }, 1000);
     }
 
-    function apriEditorNote(id, nome, noteAttuali) {
-        idInModifica = id; document.getElementById('note-file-title').innerText = "Traccia: " + nome;
-        document.getElementById('edit-note-input').value = noteAttuali || "";
-        document.getElementById('note-modal').style.display = 'flex';
-    }
-    async function salvaNotaModificata() {
-        const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica);
-        if (error) alert("Errore: " + error.message); else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica); }
-    }
-
-    function aggiornaVista(id, cur) {
-        document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`;
-        if (highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 });
-        highlightedId = id;
-        if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); }
-    }
+    function apriEditorNote(id, nome, noteAttuali) { idInModifica = id; document.getElementById('note-file-title').innerText = "Traccia: " + nome; document.getElementById('edit-note-input').value = noteAttuali || ""; document.getElementById('note-modal').style.display = 'flex'; }
+    async function salvaNotaModificata() { const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica); if (error) alert(error.message); else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica); } }
+    function aggiornaVista(id, cur) { document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`; if (highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId = id; if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); } }
     const listCont = document.getElementById('lista-tracce');
     listCont.addEventListener('scroll', () => { clearTimeout(window.st); window.st = setTimeout(() => { const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); const card = listCont.children[idx]; if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); }, 150); });
     function cambiaRecord(dir) { listCont.scrollBy({ left: dir * listCont.offsetWidth, behavior: 'smooth' }); }
@@ -350,25 +328,16 @@
             pts.forEach((p, i) => {
                 const la = parseFloat(p.getAttribute("lat")), lo = parseFloat(p.getAttribute("lon")), el = parseFloat(p.querySelector("ele")?.textContent || 0), ti = p.querySelector("time")?.textContent;
                 orig.push([la, lo]);
-                if (i > 0) {
-                    const R=6371, dLa=(la-orig[i-1][0])*Math.PI/180, dLo=(lo-orig[i-1][1])*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(orig[i-1][0]*Math.PI/180)*Math.cos(la*Math.PI/180)*Math.sin(dLo/2)**2;
-                    dist += R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-                    let ePr = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0); if (el > ePr) gain += (el - ePr);
-                }
-                alts.push([parseFloat(dist.toFixed(2)), Math.round(el)]);
-                if (i === 0) start = ti; end = ti;
+                if (i > 0) { const R=6371, dLa=(la-orig[i-1][0])*Math.PI/180, dLo=(lo-orig[i-1][1])*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(orig[i-1][0]*Math.PI/180)*Math.cos(la*Math.PI/180)*Math.sin(dLo/2)**2; dist += R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); let ePr = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0); if (el > ePr) gain += (el - ePr); }
+                alts.push([parseFloat(dist.toFixed(2)), Math.round(el)]); if (i === 0) start = ti; end = ti;
             });
             const dU = start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000);
             const DP = (p,e) => { let d=0,idx=0; for(let i=1;i<p.length-1;i++){ let dist=Math.abs((p[p.length-1][1]-p[0][1])*p[i][0]-(p[p.length-1][0]-p[0][0])*p[i][1]+p[p.length-1][0]*p[0][1]-p[p.length-1][1]*p[0][0])/Math.sqrt((p[p.length-1][1]-p[0][1])**2+(p[p.length-1][0]-p[0][0])**2); if(dist>d){idx=i;d=dist}} return d>e?DP(p.slice(0,idx+1),e).slice(0,-1).concat(DP(p.slice(idx),e)):[p[0],p[p.length-1]] };
             tempImport = { NomeFile: dU.toString(), Data: dU, Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: (start && end) ? `${Math.floor((new Date(end)-new Date(start))/3600000).toString().padStart(2,'0')}:${Math.floor(((new Date(end)-new Date(start))%3600000)/60000).toString().padStart(2,'0')}` : "--:--", CoordLight: DP(orig, 0.00005), Altimetria: alts };
-            
-            document.getElementById('nome-file-info').innerText = "Traccia Unix: " + dU;
-            document.getElementById('creatore-input').value = currentUserName; // Imposta Creatore = Nome Utente Loggato
-            document.getElementById('import-modal').style.display='flex';
+            document.getElementById('nome-file-info').innerText = "Traccia Unix: " + dU; document.getElementById('creatore-input').value = currentUserName; document.getElementById('import-modal').style.display='flex';
         };
         reader.readAsText(file);
     }
-
     async function scarica(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
         let pts = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
@@ -376,7 +345,6 @@
         const b = new Blob([gpx], { type: 'application/gpx+xml' });
         const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${nome}.gpx`; a.click();
     }
-
     async function mostraAlt(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
         const ad = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
@@ -384,14 +352,8 @@
         chart = new Chart(document.getElementById('altChart').getContext('2d'), { type: 'line', data: { labels: ad.map(p => p[0]), datasets: [{ label: 'm', data: ad.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
         document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20); document.getElementById('alt-popup').style.display='flex';
     }
-
     const ap = document.getElementById("alt-popup"), ah = document.getElementById("alt-header");
-    ah.addEventListener('mousedown', (e) => {
-        e.preventDefault(); let p3=e.clientX, p4=e.clientY;
-        const drag = (e) => { let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; };
-        const stop = () => { document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', stop); };
-        document.addEventListener('mousemove', drag); document.addEventListener('mouseup', stop);
-    });
+    ah.addEventListener('mousedown', (e) => { e.preventDefault(); let p3=e.clientX, p4=e.clientY; const drag = (e) => { let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; }; const stop = () => { document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', stop); }; document.addEventListener('mousemove', drag); document.addEventListener('mouseup', stop); });
 
     checkSession();
 </script>
