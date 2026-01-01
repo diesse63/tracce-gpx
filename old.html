@@ -11,23 +11,19 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a1a; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; display: none; }
         
-        /* Schermata Login */
         #auth-screen { position: fixed; inset: 0; background: #1a1a1a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 340px; color: #333; text-align: center; }
         .login-box input { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         #app-ui { display: none; }
-        
-        /* Controlli in alto a DX */
         .top-controls { position: absolute; top: 10px; right: 60px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
         
-        /* Frame Statico Conteggio */
         .stats-badge {
             background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px;
             padding: 0 10px; height: 32px; display: flex; align-items: center; justify-content: center;
             font-size: 11px; font-weight: bold; color: #2c3e50; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-            white-space: nowrap; pointer-events: none; /* Non cliccabile */
+            white-space: nowrap; pointer-events: none;
         }
         
         .ctrl-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
@@ -35,7 +31,6 @@
 
         #btn-filter.active { background: #ff4757; color: white; border-color: #ff4757; }
 
-        /* Carousel Inferiore */
         #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); display: none; flex-direction: column; border: 1px solid #ccc; }
         .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; }
@@ -80,9 +75,7 @@
 
 <div id="app-ui">
     <div class="top-controls">
-        <!-- Badge Conteggio -->
         <div id="stats-counter" class="stats-badge">MTB 0 - Trek 0</div>
-        
         <button id="btn-filter" class="ctrl-btn" title="Filtra">🔍</button>
         <label class="ctrl-btn" title="Importa">📤 <input type="file" id="input-gpx" accept=".gpx" style="display:none"></label>
         <button class="logout-btn" id="btn-logout-action">LOGOUT</button>
@@ -121,6 +114,7 @@
         <div id="lista-tracce"></div>
     </div>
 
+    <!-- MODAL EDIT NOTE -->
     <div id="note-modal" class="custom-modal">
         <div class="modal-box">
             <h4 style="margin:0">MODIFICA NOTE</h4>
@@ -131,12 +125,13 @@
         </div>
     </div>
 
+    <!-- MODAL IMPORT -->
     <div id="import-modal" class="custom-modal">
         <div class="modal-box">
             <h4 style="margin:0">DETTAGLI PERCORSO</h4>
             <p id="nome-file-info" style="font-size:10px; color:#666; margin: 8px 0;"></p>
             <label style="font-size:11px;">Creatore:</label>
-            <input type="text" id="creatore-input" value="">
+            <input type="text" id="creatore-input">
             <textarea id="note-import-input" placeholder="Note iniziali..."></textarea>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button id="btn-save-mtb" style="background:#e74c3c; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:bold;">MTB</button>
@@ -162,8 +157,8 @@
     
     let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
     let currentUserName = "Daniele";
-    let activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
     let isImporting = false;
+    let activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
 
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
 
@@ -176,8 +171,24 @@
         let yearOptions = '';
         for (let y = 2018; y <= 2035; y++) yearOptions += `<option value="${y}">${y}</option>`;
         yearSelects.forEach(s => s.innerHTML = yearOptions);
-        document.getElementById('f-y-start').value = "2018";
-        document.getElementById('f-y-end').value = "2035";
+        
+        // Applica i valori salvati se esistono
+        if (activeFilters.isActive) {
+            const sd = new Date(activeFilters.start * 1000);
+            const ed = new Date(activeFilters.end * 1000);
+            document.getElementById('f-m-start').value = sd.getMonth() + 1;
+            document.getElementById('f-y-start').value = sd.getFullYear();
+            document.getElementById('f-m-end').value = ed.getMonth() + 1;
+            document.getElementById('f-y-end').value = ed.getFullYear();
+            document.getElementById('f-min-disl').value = activeFilters.minDisl;
+            document.getElementById('f-max-disl').value = activeFilters.maxDisl;
+            document.getElementById('f-min-len').value = activeFilters.minLen;
+            document.getElementById('f-max-len').value = activeFilters.maxLen;
+            document.getElementById('btn-filter').classList.add('active');
+        } else {
+            document.getElementById('f-y-start').value = "2018";
+            document.getElementById('f-y-end').value = "2035";
+        }
     }
 
     document.getElementById('btn-login-action').addEventListener('click', login);
@@ -202,13 +213,22 @@
         const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
         if (error) alert("Credenziali errate"); else checkSession();
     }
-    async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
+    async function logout() { 
+        sessionStorage.removeItem('gpx_filters');
+        await supabaseClient.auth.signOut(); 
+        location.reload(); 
+    }
     
     async function checkSession() {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
             const emailName = user.email.split('@')[0];
             currentUserName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+            
+            // Recupera filtri da sessionStorage
+            const savedFilters = sessionStorage.getItem('gpx_filters');
+            if (savedFilters) activeFilters = JSON.parse(savedFilters);
+
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-ui').style.display = 'block';
             document.getElementById('map').style.display = 'block';
@@ -233,29 +253,32 @@
         const me = parseInt(document.getElementById('f-m-end').value), ye = parseInt(document.getElementById('f-y-end').value);
         const minD = parseFloat(document.getElementById('f-min-disl').value), maxD = parseFloat(document.getElementById('f-max-disl').value);
         const minL = parseFloat(document.getElementById('f-min-len').value), maxL = parseFloat(document.getElementById('f-max-len').value);
+
         const startD = new Date(ys, ms - 1, 1);
         const endD = new Date(ye, me, 0, 23, 59, 59);
+
         if (startD > endD) return alert("ERRORE COERENZA DATI: La data d'inizio non può essere successiva alla fine.");
         if (minD > maxD) return alert("ERRORE COERENZA DATI: Il dislivello minimo supera il massimo.");
         if (minL > maxL) return alert("ERRORE COERENZA DATI: La lunghezza minima supera la massima.");
-        activeFilters = { start: Math.floor(startD.getTime()/1000), end: Math.floor(endD.getTime()/1000), minDisl: minD, maxDisl: maxD, minLen: minL, maxLen: maxL, isActive: true };
-        document.getElementById('btn-filter').classList.add('active');
-        document.getElementById('filter-modal').style.display = 'none';
-        tracceLayer.clearLayers(); cache = {}; 
-        caricaArea(true);
+
+        const filters = { 
+            start: Math.floor(startD.getTime()/1000), 
+            end: Math.floor(endD.getTime()/1000), 
+            minDisl: minD, maxDisl: maxD, minLen: minL, maxLen: maxL, 
+            isActive: true 
+        };
+        
+        sessionStorage.setItem('gpx_filters', JSON.stringify(filters));
+        sessionStorage.setItem('show_filter_alert', 'true');
+        location.reload(); // REFRESH PAGINA
     }
 
     function resetFiltri() {
-        setupDropdowns();
-        document.getElementById('f-min-disl').value = 0; document.getElementById('f-max-disl').value = 3000;
-        document.getElementById('f-min-len').value = 0; document.getElementById('f-max-len').value = 200;
-        activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
-        document.getElementById('btn-filter').classList.remove('active');
-        document.getElementById('filter-modal').style.display = 'none';
-        tracceLayer.clearLayers(); cache = {}; caricaArea();
+        sessionStorage.removeItem('gpx_filters');
+        location.reload(); // REFRESH PAGINA
     }
 
-    async function caricaArea(showStatus = false) {
+    async function caricaArea() {
         const b = map.getBounds();
         const { data, error } = await supabaseClient.rpc('get_tracce_in_view', { 
             min_lat: b.getSouth(), min_lon: b.getWest(), max_lat: b.getNorth(), max_lon: b.getEast(),
@@ -275,10 +298,12 @@
             }
         });
         
-        // AGGIORNA IL FRAME STATICO IN ALTO
         document.getElementById('stats-counter').innerText = `MTB ${mtb} - Trek ${trk}`;
         
-        if(showStatus) alert(`FILTRO APPLICATO!\n\nTracce totali trovate in mappa: ${data.length}\n- MTB (Rosse): ${mtb}\n- Trekking (Blu): ${trk}`);
+        if(sessionStorage.getItem('show_filter_alert') === 'true') {
+            alert(`FILTRO APPLICATO!\n\nTracce totali trovate in mappa: ${data.length}\n- MTB (Rosse): ${mtb}\n- Trekking (Blu): ${trk}`);
+            sessionStorage.removeItem('show_filter_alert');
+        }
     }
 
     async function eseguiRicerca(lat, lng, highlightId = null) {
@@ -286,6 +311,7 @@
         markerClick = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', { click_lat: lat, click_lon: lng, raggio_metri: 500 });
         if (error || !data.length) { if(!isImporting) chiudiMenu(); return; }
+
         let filtered = data;
         if (activeFilters.isActive) {
             filtered = data.filter(t => {
@@ -297,14 +323,18 @@
                 return true;
             });
         }
+        
         if (isImporting && highlightId) filtered = filtered.filter(t => t.id == highlightId);
         if (!filtered.length) { if(!isImporting) chiudiMenu(); return; }
+        
         const ids = filtered.map(d => d.id);
         const { data: details } = await supabaseClient.from('Tracce').select('id, Note, Creatore').in('id', ids);
         const detailsMap = Object.fromEntries((details || []).map(d => [d.id, d]));
+        
         total = filtered.length;
         const lista = document.getElementById('lista-tracce');
         lista.innerHTML = ""; document.getElementById('menu').style.display = 'flex';
+        
         let targetIdx = 0;
         filtered.forEach((t, idx) => {
             if (highlightId && t.id == highlightId) targetIdx = idx;
@@ -331,26 +361,12 @@
             const poly = L.polyline(nuova.CoordLight, { color: colACT, weight: 8, opacity: 1, tipo: tipo }).addTo(tracceLayer);
             cache[nuova.id] = poly;
             eseguiRicerca(nuova.CoordLight[0][0], nuova.CoordLight[0][1], nuova.id);
-            alert("Traccia importata con successo!");
         }, 800);
     }
 
     function apriEditorNote(id, nome, noteAttuali) { idInModifica = id; document.getElementById('note-file-title').innerText = "Traccia: " + nome; document.getElementById('edit-note-input').value = noteAttuali || ""; document.getElementById('note-modal').style.display = 'flex'; }
     async function salvaNotaModificata() { const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica); if (error) alert(error.message); else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica); } }
-    
-    function aggiornaVista(id, cur) { 
-        document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`; 
-        if (highlightedId && cache[highlightedId]) {
-            const old = cache[highlightedId];
-            old.setStyle({ color: old.options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 });
-        }
-        highlightedId = id; 
-        if (cache[id]) { 
-            cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); 
-            map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); 
-        } 
-    }
-    
+    function aggiornaVista(id, cur) { document.getElementById('count-label').innerText = `TRACCIA ${cur} DI ${total}`; if (highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId = id; if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); } }
     const listCont = document.getElementById('lista-tracce');
     listCont.addEventListener('scroll', () => { clearTimeout(window.st); window.st = setTimeout(() => { const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); const card = listCont.children[idx]; if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); }, 150); });
     function cambiaRecord(dir) { listCont.scrollBy({ left: dir * listCont.offsetWidth, behavior: 'smooth' }); }
@@ -389,15 +405,8 @@
         chart = new Chart(document.getElementById('altChart').getContext('2d'), { type: 'line', data: { labels: ad.map(p => p[0]), datasets: [{ label: 'm', data: ad.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
         document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20); document.getElementById('alt-popup').style.display='flex';
     }
-    
-    // Drag altimetria
     const ap = document.getElementById("alt-popup"), ah = document.getElementById("alt-header");
-    ah.addEventListener('mousedown', (e) => {
-        e.preventDefault(); let p3=e.clientX, p4=e.clientY;
-        const drag = (e) => { let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; };
-        const stop = () => { document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', stop); };
-        document.addEventListener('mousemove', drag); document.addEventListener('mouseup', stop);
-    });
+    ah.addEventListener('mousedown', (e) => { e.preventDefault(); let p3=e.clientX, p4=e.clientY; const drag = (e) => { let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; }; const stop = () => { document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', stop); }; document.addEventListener('mousemove', drag); document.addEventListener('mouseup', stop); });
 
     checkSession();
 </script>
