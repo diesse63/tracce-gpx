@@ -11,16 +11,19 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a1a; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; display: none; }
         
+        /* Schermata Login */
         #auth-screen { position: fixed; inset: 0; background: #1a1a1a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 340px; color: #333; text-align: center; }
+        .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 340px; color: #333; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .login-box input { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
+        /* Interfaccia */
         #app-ui { display: none; }
         .top-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; }
         .ctrl-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
         .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 12px; height: 36px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; }
 
+        /* Carousel Inferiore */
         #menu {
             position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000;
             background: white; border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.3); 
@@ -30,11 +33,11 @@
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; letter-spacing: 1px; }
         .nav-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0 10px; }
 
-        #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; }
+        #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; gap: 0; -webkit-overflow-scrolling: touch; }
         #lista-tracce::-webkit-scrollbar { display: none; }
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; padding: 12px 18px; color: #333; }
         .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
-        .track-time { font-size: 10px; color: #7f8c8d; margin-left: 5px; }
+        .track-time { font-size: 10px; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
         
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; }
@@ -45,15 +48,16 @@
         .btn-group { display: flex; gap: 4px; }
         .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
 
+        /* Modali */
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
-        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
-        .modal-box textarea, .modal-box input { width: 100%; margin: 8px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; font-family: inherit; }
-        .modal-box textarea { height: 100px; resize: none; }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-box textarea { width: 100%; height: 100px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; resize: none; font-family: inherit; }
+        .modal-box input { width: 100%; margin-bottom: 10px; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
 
         #alt-popup {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 95%; max-width: 450px; background: white; z-index: 4000;
-            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column; color: #333;
+            border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.4); display: none; flex-direction: column;
         }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
         canvas { width: 100% !important; height: 180px !important; padding: 10px; box-sizing: border-box; }
@@ -184,7 +188,7 @@
                     color: t.tipo_percorso === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5, tipo: t.tipo_percorso 
                 }).addTo(tracceLayer);
                 cache[t.id] = poly;
-                poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng); });
+                poly.on('click', (e) => { L.DomEvent.stopPropagation(e); eseguiRicerca(e.latlng.lat, e.latlng.lng, t.id); });
             }
         });
     }
@@ -192,6 +196,7 @@
     async function eseguiRicerca(lat, lng, highlightId = null) {
         if (markerClick) map.removeLayer(markerClick);
         markerClick = L.circleMarker([lat, lng], { radius: 5, color: '#e74c3c' }).addTo(map);
+        
         const { data, error } = await supabaseClient.rpc('cerca_tracce_vicine', { click_lat: lat, click_lon: lng, raggio_metri: 500 });
         if (error || !data.length) { chiudiMenu(); return; }
         
@@ -204,20 +209,20 @@
         lista.innerHTML = "";
         document.getElementById('menu').style.display = 'flex';
         
-        let initialIndex = 0;
+        let targetIdx = 0;
         data.forEach((t, idx) => {
-            if (highlightId && t.id == highlightId) initialIndex = idx;
+            if (highlightId && t.id == highlightId) targetIdx = idx;
             const d = new Date(t.data_unix * 1000);
             const det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
+            const icona = (t.tipo_percorso === 'MTB') ? '🚵' : '🥾';
+            const colorNota = (det.Note && det.Note.trim() !== "") ? '#e74c3c' : '#000';
+            
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
             card.innerHTML = `
-                <div class="track-header">
-                    <span class="track-date">📅 ${d.toLocaleDateString('it-IT')} 
-                    <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span>
-                </div>
+                <div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div>
                 <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div>
+                    <div class="stat-item"><span class="stat-icon">${icona}</span> ${t.tipo_percorso}</div>
                     <div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div>
                     <div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div>
                     <div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div>
@@ -225,7 +230,7 @@
                 <div class="file-row">
                     <span class="file-name">📄 ${t.nome_file}</span>
                     <div class="btn-group">
-                        <button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button>
+                        <button class="btn-action btn-note-item" style="background:${colorNota}">📝 NOTE</button>
                         <button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button>
                         <button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button>
                     </div>
@@ -236,24 +241,43 @@
             lista.appendChild(card);
         });
         
-        // Sposta lo scroll sulla traccia corretta
         setTimeout(() => {
-            lista.scrollLeft = initialIndex * lista.offsetWidth;
-            aggiornaVista(data[initialIndex].id, initialIndex + 1);
-        }, 100);
+            lista.scrollLeft = targetIdx * lista.offsetWidth;
+            aggiornaVista(data[targetIdx].id, targetIdx + 1);
+        }, 200);
     }
 
+    async function salvaTraccia(tipo) {
+        tempImport.TipoPercorso = tipo; 
+        tempImport.Note = document.getElementById('note-import-input').value;
+        tempImport.Creatore = document.getElementById('creatore-input').value;
+        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
+        if (error) {
+            if (error.code === '23505') { document.getElementById('import-modal').style.display = 'none'; alert("Traccia già presente!"); }
+            else alert("Errore: " + error.message);
+            return;
+        }
+        const nuova = data[0];
+        document.getElementById('import-modal').style.display = 'none';
+        setTimeout(async () => {
+            await caricaArea();
+            const startPt = nuova.CoordLight[0];
+            eseguiRicerca(startPt[0], startPt[1], nuova.id);
+            alert("Importazione completata!");
+        }, 800);
+    }
+
+    function apriEditorNote(id, nome, noteAttuali) {
+        idInModifica = id;
+        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
+        document.getElementById('edit-note-input').value = noteAttuali || "";
+        document.getElementById('note-modal').style.display = 'flex';
+    }
     async function salvaNotaModificata() {
         const nuovaNota = document.getElementById('edit-note-input').value;
         const { error } = await supabaseClient.from('Tracce').update({ Note: nuovaNota }).eq('id', idInModifica);
-        if (error) alert("Errore salvataggio: " + error.message);
-        else {
-            document.getElementById('note-modal').style.display = 'none';
-            if (markerClick) {
-                const latlng = markerClick.getLatLng();
-                eseguiRicerca(latlng.lat, latlng.lng, idInModifica);
-            }
-        }
+        if (error) alert("Errore: " + error.message);
+        else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) { const latlng = markerClick.getLatLng(); eseguiRicerca(latlng.lat, latlng.lng, idInModifica); } }
     }
 
     function aggiornaVista(id, cur) {
@@ -275,9 +299,11 @@
             if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1);
         }, 150);
     });
-
     function cambiaRecord(dir) { listCont.scrollBy({ left: dir * listCont.offsetWidth, behavior: 'smooth' }); }
     function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) cache[highlightedId].setStyle({ color: cache[highlightedId].options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.5 }); highlightedId=null; }
+
+    function calcolaD(l1,o1,l2,o2){let R=6371,dLa=(l2-l1)*Math.PI/180,dLo=(o2-o1)*Math.PI/180,a=Math.sin(dLa/2)**2+Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+    function DP(p,e){let d=0,idx=0;for(let i=1;i<p.length-1;i++){let dist=Math.abs((p[p.length-1][1]-p[0][1])*p[i][0]-(p[p.length-1][0]-p[0][0])*p[i][1]+p[p.length-1][0]*p[0][1]-p[p.length-1][1]*p[0][0])/Math.sqrt((p[p.length-1][1]-p[0][1])**2+(p[p.length-1][0]-p[0][0])**2);if(dist>d){idx=i;d=dist}}return d>e?DP(p.slice(0,idx+1),e).slice(0,-1).concat(DP(p.slice(idx),e)):[p[0],p[p.length-1]]}
 
     function avviaImport(ev) {
         const file = ev.target.files[0]; if (!file) return;
@@ -288,51 +314,16 @@
             pts.forEach((p, i) => {
                 const la = parseFloat(p.getAttribute("lat")), lo = parseFloat(p.getAttribute("lon")), el = parseFloat(p.querySelector("ele")?.textContent || 0), ti = p.querySelector("time")?.textContent;
                 orig.push([la, lo]);
-                if (i > 0) {
-                    const R=6371, dLa=(la-orig[i-1][0])*Math.PI/180, dLo=(lo-orig[i-1][1])*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(orig[i-1][0]*Math.PI/180)*Math.cos(la*Math.PI/180)*Math.sin(dLo/2)**2;
-                    dist += R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-                    let ePr = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0); if (el > ePr) gain += (el - ePr);
-                }
+                if (i > 0) { dist += calcolaD(orig[i-1][0], orig[i-1][1], la, lo); let ePr = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0); if (el > ePr) gain += (el - ePr); }
                 alts.push([parseFloat(dist.toFixed(2)), Math.round(el)]);
                 if (i === 0) start = ti; end = ti;
             });
             const dU = start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000);
-            const DP = (p,e) => { let d=0,idx=0; for(let i=1;i<p.length-1;i++){ let dist=Math.abs((p[p.length-1][1]-p[0][1])*p[i][0]-(p[p.length-1][0]-p[0][0])*p[i][1]+p[p.length-1][0]*p[0][1]-p[p.length-1][1]*p[0][0])/Math.sqrt((p[p.length-1][1]-p[0][1])**2+(p[p.length-1][0]-p[0][0])**2); if(dist>d){idx=i;d=dist}} return d>e?DP(p.slice(0,idx+1),e).slice(0,-1).concat(DP(p.slice(idx),e)):[p[0],p[p.length-1]] };
-            let dur = "--:--"; if(start && end){ const di = new Date(end)-new Date(start); dur = `${Math.floor(di/3600000).toString().padStart(2,'0')}:${Math.floor((di%3600000)/60000).toString().padStart(2,'0')}`; }
-            tempImport = { NomeFile: dU.toString(), Data: dU, Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: dur, CoordLight: DP(orig, 0.00005), Altimetria: alts };
+            tempImport = { NomeFile: dU.toString(), Data: dU, Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: (start && end) ? `${Math.floor((new Date(end)-new Date(start))/3600000).toString().padStart(2,'0')}:${Math.floor(((new Date(end)-new Date(start))%3600000)/60000).toString().padStart(2,'0')}` : "--:--", CoordLight: DP(orig, 0.00005), Altimetria: alts };
             document.getElementById('nome-file-info').innerText = "Traccia Unix: " + dU;
             document.getElementById('import-modal').style.display='flex';
         };
         reader.readAsText(file);
-    }
-
-    async function salvaTraccia(tipo) {
-        tempImport.TipoPercorso = tipo; 
-        tempImport.Note = document.getElementById('note-import-input').value;
-        tempImport.Creatore = document.getElementById('creatore-input').value;
-        
-        // 1. Inserimento
-        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
-        
-        if (error) {
-            if (error.code === '23505') {
-                document.getElementById('import-modal').style.display = 'none';
-                alert("Questa traccia esiste già nell'archivio!");
-            } else alert("Errore: " + error.message);
-        } else {
-            // 2. Successo!
-            const nuovaTraccia = data[0];
-            document.getElementById('import-modal').style.display = 'none';
-            
-            // 3. Carica l'area geografica per far apparire la nuova linea sulla mappa
-            await caricaArea();
-            
-            // 4. Seleziona automaticamente la nuova traccia
-            const primaCoord = nuovaTraccia.CoordLight[0];
-            eseguiRicerca(primaCoord[0], primaCoord[1], nuovaTraccia.id);
-            
-            alert("Importazione completata!");
-        }
     }
 
     async function scarica(id, nome) {
