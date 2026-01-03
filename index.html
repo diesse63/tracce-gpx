@@ -24,8 +24,6 @@
         .login-box button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
         #app-ui { display: none; }
-        
-        /* Controlli Verticali a Destra */
         .top-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
         .stats-badge { background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 5px 10px; font-size: 10px; font-weight: bold; color: #2c3e50; box-shadow: 0 2px 5px rgba(0,0,0,0.1); white-space: nowrap; }
         .ctrl-btn { background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
@@ -34,7 +32,7 @@
         #btn-filter.active { background: #ff4757; color: white; }
         #btn-locate.following { background: #3498db; color: white; }
 
-        /* Carousel Inferiore */
+        /* Carousel */
         #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 25px rgba(0,0,0,0.4); display: none; flex-direction: column; border: 1px solid #ccc; }
         .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-radius: 11px 11px 0 0; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; }
@@ -45,20 +43,17 @@
         .track-card { flex: 0 0 100%; scroll-snap-align: start; box-sizing: border-box; padding: 15px; color: #333; }
         .track-date { color: #2c3e50; font-size: 14px; font-weight: bold; }
         .track-time { font-size: 10px; color: #7f8c8d; margin-left: 5px; }
-        
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; border-top: 1px solid #eee; padding-top: 6px; margin-bottom: 6px; }
         .stat-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; }
         .stat-icon { font-size: 13px; width: 18px; text-align: center; }
 
         .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
-        .btn-group { display: flex; gap: 4px; }
-        .btn-action { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
+        .btn-group { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+        .btn-action { border: none; padding: 6px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; white-space: nowrap; }
 
-        /* Modali */
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
         .modal-box textarea, .modal-box input, .modal-box select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; margin-top: 5px; }
-        .modal-box textarea { height: 100px; resize: none; }
 
         #alt-popup { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); width: 95%; max-width: 450px; background: white; z-index: 4000; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -81,11 +76,9 @@
     <div class="top-controls">
         <button class="logout-btn" id="btn-logout-action">LOGOUT</button>
         <div id="stats-counter" class="stats-badge">MTB 0 - Trek 0</div>
-        <button id="btn-locate" class="ctrl-btn" title="La mia posizione">🎯</button>
+        <button id="btn-locate" class="ctrl-btn" title="Posizione">🎯</button>
         <button id="btn-filter" class="ctrl-btn" title="Filtra">🔍</button>
-        <label class="ctrl-btn" title="Importa">
-            📤 <input type="file" id="input-gpx" accept=".gpx" style="display:none" onchange="avviaImport(event)">
-        </label>
+        <label class="ctrl-btn">📤 <input type="file" id="input-gpx" accept=".gpx" style="display:none" onchange="avviaImport(event)"></label>
     </div>
 
     <div id="menu">
@@ -109,7 +102,6 @@
         </div>
     </div>
 
-    <!-- MODAL FILTRI -->
     <div id="filter-modal" class="custom-modal">
         <div class="modal-box">
             <h4 style="margin:0">FILTRA ARCHIVIO</h4>
@@ -134,8 +126,8 @@
 
     <div id="import-modal" class="custom-modal">
         <div class="modal-box">
-            <h4 style="margin:0">DETTAGLI IMPORTAZIONE</h4>
-            <p id="nome-file-info" style="font-size:10px; color:#666; margin: 8px 0;"></p>
+            <h4>DETTAGLI IMPORTAZIONE</h4>
+            <p id="nome-file-info" style="font-size:10px; color:#666;"></p>
             <label style="font-size:11px;">Creatore:</label>
             <input type="text" id="creatore-input">
             <textarea id="note-import-input" placeholder="Note..."></textarea>
@@ -163,51 +155,47 @@
     const supabaseClient = supabase.createClient('https://afdbrcywdooycvipzovs.supabase.co', 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn');
     
     let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
-    let userMarker = null, userCircle = null, isFollowing = false, isImporting = false;
+    let userMarker = null, userCircle = null, isFollowing = false, isImporting = false, isAdmin = false;
     let currentUserName = "Daniele";
     let activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
     const listCont = document.getElementById('lista-tracce');
 
-    // --- AUTH CHANGE LISTENER ---
+    // --- AUTH ---
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN') {
-            const emailName = session.user.email.split('@')[0];
+            const email = session.user.email;
+            isAdmin = (email === 'dasi@grifo.mtb');
+            const emailName = email.split('@')[0];
             currentUserName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+            
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-ui').style.display = 'block';
             document.getElementById('map').style.display = 'block';
             document.getElementById('btn-logout-action').innerText = "LOGOUT (" + currentUserName.toUpperCase() + ")";
             
-            const savedFilters = sessionStorage.getItem('gpx_filters');
-            if (savedFilters) activeFilters = JSON.parse(savedFilters);
-            
-            setupDropdowns();
-            initMap();
-            attivaGPS();
+            if (sessionStorage.getItem('gpx_filters')) activeFilters = JSON.parse(sessionStorage.getItem('gpx_filters'));
+            setupDropdowns(); initMap(); attivaGPS();
         } else if (event === 'SIGNED_OUT') {
             location.reload();
         }
     });
 
-    // --- LOGIN ACTION ---
     document.getElementById('btn-login-action').addEventListener('click', async () => {
-        const userInput = document.getElementById('username').value.toLowerCase().trim();
+        const user = document.getElementById('username').value.toLowerCase().trim();
         const pass = document.getElementById('pass').value;
-        let email = userInput;
-        if (!userInput.includes('@')) {
-            if (userInput === 'rampi') email = 'rampi@grifo.mtb';
-            else if (userInput === 'trek') email = 'trek@king.old';
-            else email = userInput + '@grifo.mtb';
+        let email = user;
+        if (!user.includes('@')) {
+            if (user === 'rampi') email = 'rampi@grifo.mtb';
+            else if (user === 'trek') email = 'trek@king.old';
+            else if (user === 'dasi') email = 'dasi@grifo.mtb';
+            else email = user + '@grifo.mtb';
         }
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-        if (error) alert("Credenziali errate: " + error.message);
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+        if (error) alert("Credenziali errate");
     });
 
-    document.getElementById('btn-logout-action').addEventListener('click', () => {
-        sessionStorage.removeItem('gpx_filters');
-        supabaseClient.auth.signOut();
-    });
+    document.getElementById('btn-logout-action').onclick = () => { sessionStorage.removeItem('gpx_filters'); supabaseClient.auth.signOut(); };
 
     // --- MAPPA ---
     function initMap() {
@@ -282,7 +270,7 @@
     document.getElementById('btn-clear-filters').onclick = () => { sessionStorage.removeItem('gpx_filters'); location.reload(); };
     document.getElementById('btn-filter').onclick = () => document.getElementById('filter-modal').style.display='flex';
 
-    // --- RICERCA E VISUALIZZAZIONE ---
+    // --- CARICAMENTO E RICERCA ---
     async function caricaArea() {
         if (!map) return;
         const b = map.getBounds();
@@ -302,10 +290,6 @@
             }
         });
         document.getElementById('stats-counter').innerText = `MTB ${mtb} - Trek ${trk}`;
-        if(sessionStorage.getItem('show_filter_alert') === 'true') {
-            alert(`FILTRO APPLICATO!\nTracce totali: ${data.length}\nMTB: ${mtb} | Trekking: ${trk}`);
-            sessionStorage.removeItem('show_filter_alert');
-        }
     }
 
     async function eseguiRicerca(lat, lng, highlightId = null) {
@@ -335,19 +319,31 @@
             const d = new Date(t.data_unix * 1000), det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
-            card.innerHTML = `<div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div><div class="stats-grid"><div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div><div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div><div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div><div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div><div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div></div><div class="file-row"><span class="file-name" style="font-size:9px; color:#999;">📄 ${t.nome_file}</span><div class="btn-group"><button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button><button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button><button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button></div></div>`;
             
-            // ASSEGNAZIONE EVENTI BOTTONI CARD
+            // Bottone cancella visibile solo se isAdmin è true
+            const delBtn = isAdmin ? `<button class="btn-action btn-delete-item" style="background:#c0392b">🗑️ CANCELLA</button>` : '';
+
+            card.innerHTML = `<div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div><div class="stats-grid"><div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div><div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div><div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div><div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div><div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div></div><div class="file-row"><span class="file-name" style="font-size:9px; color:#999;">📄 ${t.nome_file}</span><div class="btn-group">${delBtn}<button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button><button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button><button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button></div></div>`;
+            
             card.querySelector('.btn-note-item').onclick = () => apriEditorNote(t.id, t.nome_file, det.Note);
             card.querySelector('.btn-alt-item').onclick = () => mostraAlt(t.id, t.nome_file);
             card.querySelector('.btn-gpx-item').onclick = () => scarica(t.id, t.nome_file);
+            if (isAdmin) card.querySelector('.btn-delete-item').onclick = () => cancellaTraccia(t.id, t.nome_file);
             
             lista.appendChild(card);
         });
-        setTimeout(() => { 
-            listCont.scrollLeft = targetIdx * listCont.offsetWidth; 
-            aggiornaVista(filtered[targetIdx].id, targetIdx + 1); 
-        }, 150);
+        setTimeout(() => { listCont.scrollLeft = targetIdx * listCont.offsetWidth; aggiornaVista(filtered[targetIdx].id, targetIdx + 1); }, 150);
+    }
+
+    async function cancellaTraccia(id, nome) {
+        if (confirm(`Sei sicuro di voler eliminare definitivamente la traccia ${nome}?`)) {
+            const { error } = await supabaseClient.from('Tracce').delete().eq('id', id);
+            if (error) alert("Errore durante la cancellazione: " + error.message);
+            else {
+                alert("Traccia eliminata con successo.");
+                location.reload();
+            }
+        }
     }
 
     function aggiornaVista(id, cur) {
@@ -359,26 +355,31 @@
 
     listCont.addEventListener('scroll', () => { clearTimeout(window.st); window.st = setTimeout(() => { const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); const card = listCont.children[idx]; if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); }, 150); });
     
-    function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) { const t = cache[highlightedId]; t.setStyle({ color: t.options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.6 }); } highlightedId=null; isImporting = false; }
+    document.getElementById('btn-prev-track').onclick = () => listCont.scrollBy({ left: -listCont.offsetWidth, behavior: 'smooth' });
+    document.getElementById('btn-next-track').onclick = () => listCont.scrollBy({ left: listCont.offsetWidth, behavior: 'smooth' });
     document.getElementById('btn-close-menu').onclick = chiudiMenu;
 
-    // --- NOTE EDITOR ---
-    function apriEditorNote(id, nome, noteAttuali) {
-        idInModifica = id;
-        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
-        document.getElementById('edit-note-input').value = noteAttuali || "";
-        document.getElementById('note-modal').style.display = 'flex';
-    }
-    async function salvaNotaModificata() {
-        const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica);
-        if (error) alert("Errore: " + error.message);
-        else {
-            document.getElementById('note-modal').style.display = 'none';
-            if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica);
-        }
+    function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) { const t = cache[highlightedId]; t.setStyle({ color: t.options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.6 }); } highlightedId=null; isImporting = false; }
+
+    function apriEditorNote(id, nome, noteAttuali) { idInModifica = id; document.getElementById('note-file-title').innerText = "Traccia: " + nome; document.getElementById('edit-note-input').value = noteAttuali || ""; document.getElementById('note-modal').style.display = 'flex'; }
+    async function salvaNotaModificata() { const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica); if (error) alert(error.message); else { document.getElementById('note-modal').style.display = 'none'; if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica); } }
+
+    async function scarica(id, nome) {
+        const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
+        let pts = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
+        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${nome}</name></metadata><trk><name>${nome}</name><trkseg>${pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join('')}</trkseg></trk></gpx>`;
+        const b = new Blob([gpx], { type: 'application/gpx+xml' });
+        const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${nome}.gpx`; a.click();
     }
 
-    // --- IMPORT / EXPORT / ALT ---
+    async function mostraAlt(id, nome) {
+        const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
+        const ad = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
+        if (chart) chart.destroy();
+        chart = new Chart(document.getElementById('altChart').getContext('2d'), { type: 'line', data: { labels: ad.map(p => p[0]), datasets: [{ label: 'Quota', data: ad.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20); document.getElementById('alt-popup').style.display='flex';
+    }
+
     async function salvaTraccia(tipo) {
         tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-import-input').value; tempImport.Creatore = document.getElementById('creatore-input').value;
         const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
@@ -412,28 +413,10 @@
         reader.readAsText(file);
     }
 
-    async function scarica(id, nome) {
-        const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
-        let pts = typeof data.CoordLight === 'string' ? JSON.parse(data.CoordLight) : data.CoordLight;
-        let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="TracceGPX" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${nome}</name></metadata><trk><name>${nome}</name><trkseg>${pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join('')}</trkseg></trk></gpx>`;
-        const b = new Blob([gpx], { type: 'application/gpx+xml' });
-        const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `${nome}.gpx`; a.click();
-    }
-
-    async function mostraAlt(id, nome) {
-        const { data } = await supabaseClient.from('Tracce').select('Altimetria').eq('id', id).single();
-        const ad = typeof data.Altimetria === 'string' ? JSON.parse(data.Altimetria) : data.Altimetria;
-        if (chart) chart.destroy();
-        chart = new Chart(document.getElementById('altChart').getContext('2d'), { type: 'line', data: { labels: ad.map(p => p[0]), datasets: [{ label: 'm', data: ad.map(p => p[1]), borderColor: '#3498db', fill: true, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-        document.getElementById('alt-title').innerText = "📈 " + nome.substring(0, 20); document.getElementById('alt-popup').style.display='flex';
-    }
-
     // Drag altimetria
     const ap = document.getElementById("alt-popup"), ah = document.getElementById("alt-header");
     ah.onmousedown = (e) => { e.preventDefault(); let p3=e.clientX, p4=e.clientY; document.onmouseup=()=>document.onmousemove=null; document.onmousemove=(e)=>{ let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; }; };
 
-    document.getElementById('btn-prev-track').addEventListener('click', () => { listCont.scrollBy({ left: -listCont.offsetWidth, behavior: 'smooth' }); });
-    document.getElementById('btn-next-track').addEventListener('click', () => { listCont.scrollBy({ left: listCont.offsetWidth, behavior: 'smooth' }); });
 </script>
 </body>
 </html>
