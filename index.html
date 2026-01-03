@@ -26,10 +26,7 @@
         #app-ui { display: none; }
         
         /* Controlli Verticali a Destra */
-        .top-controls { 
-            position: absolute; top: 10px; right: 10px; z-index: 1000; 
-            display: flex; flex-direction: column; gap: 10px; align-items: flex-end; 
-        }
+        .top-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
         .stats-badge { background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 5px 10px; font-size: 10px; font-weight: bold; color: #2c3e50; box-shadow: 0 2px 5px rgba(0,0,0,0.1); white-space: nowrap; }
         .ctrl-btn { background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .logout-btn { background: #e74c3c; color: white; border: none; padding: 0 15px; height: 36px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -41,8 +38,7 @@
         #menu { position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 12px; box-shadow: 0 -2px 25px rgba(0,0,0,0.4); display: none; flex-direction: column; border: 1px solid #ccc; }
         .menu-header { background: #2c3e50; color: white; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-radius: 11px 11px 0 0; }
         .menu-header h3 { margin: 0; font-size: 10px; text-transform: uppercase; flex-grow: 1; text-align: center; }
-        .nav-btn { background: rgba(255,255,255,0.1); border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px 15px; border-radius: 4px; transition: 0.2s; }
-        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+        .nav-btn { background: rgba(255,255,255,0.1); border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px 15px; border-radius: 4px; }
 
         #lista-tracce { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: #f8f9fa; border-radius: 0 0 11px 11px; scroll-behavior: smooth; }
         #lista-tracce::-webkit-scrollbar { display: none; }
@@ -55,11 +51,14 @@
         .stat-icon { font-size: 13px; width: 18px; text-align: center; }
 
         .file-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dotted #ccc; padding-top: 6px; }
-        .btn-action { border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
+        .btn-group { display: flex; gap: 4px; }
+        .btn-action { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; color: white; }
 
+        /* Modali */
         .custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 6000; align-items: center; justify-content: center; }
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; color: #333; }
         .modal-box textarea, .modal-box input, .modal-box select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; margin-top: 5px; }
+        .modal-box textarea { height: 100px; resize: none; }
 
         #alt-popup { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); width: 95%; max-width: 450px; background: white; z-index: 4000; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); display: none; flex-direction: column; }
         #alt-header { background: #2c3e50; color: white; padding: 10px; cursor: move; border-radius: 11px 11px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -79,7 +78,6 @@
 </div>
 
 <div id="app-ui">
-    <!-- Pulsanti allineati verticalmente a DESTRA -->
     <div class="top-controls">
         <button class="logout-btn" id="btn-logout-action">LOGOUT</button>
         <div id="stats-counter" class="stats-badge">MTB 0 - Trek 0</div>
@@ -92,13 +90,23 @@
 
     <div id="menu">
         <div class="menu-header">
-            <!-- Bottoni di scorrimento -->
             <button class="nav-btn" id="btn-prev-track">&#10094;</button>
             <h3 id="count-label">0 TRACCE</h3>
             <button class="nav-btn" id="btn-next-track">&#10095;</button>
             <button class="close-btn" id="btn-close-menu">×</button>
         </div>
         <div id="lista-tracce"></div>
+    </div>
+
+    <!-- MODAL EDIT NOTE -->
+    <div id="note-modal" class="custom-modal">
+        <div class="modal-box">
+            <h4 style="margin:0">NOTE PERCORSO</h4>
+            <p id="note-file-title" style="font-size:10px; color:#666; margin: 5px 0;"></p>
+            <textarea id="edit-note-input"></textarea>
+            <button class="btn-action" style="background:#27ae60; width:100%; padding:12px; margin-top:10px;" id="btn-save-note">SALVA</button>
+            <button class="close-modal-btn" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:11px;">Chiudi</button>
+        </div>
     </div>
 
     <!-- MODAL FILTRI -->
@@ -154,14 +162,14 @@
 
     const supabaseClient = supabase.createClient('https://afdbrcywdooycvipzovs.supabase.co', 'sb_publishable_3wEeeRhDo6AHqZkk1mcE2w_Ykp3L-Nn');
     
-    let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null;
+    let map, tracceLayer, cache = {}, markerClick = null, highlightedId = null, chart = null, total = 0, tempImport = null, idInModifica = null;
     let userMarker = null, userCircle = null, isFollowing = false, isImporting = false;
     let currentUserName = "Daniele";
     let activeFilters = { start: null, end: null, minDisl: 0, maxDisl: 3000, minLen: 0, maxLen: 200, isActive: false };
     const colMTB = '#e74c3c', colTRK = '#3498db', colACT = '#f39c12';
     const listCont = document.getElementById('lista-tracce');
 
-    // --- LOGICA AUTH ---
+    // --- AUTH CHANGE LISTENER ---
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN') {
             const emailName = session.user.email.split('@')[0];
@@ -170,8 +178,10 @@
             document.getElementById('app-ui').style.display = 'block';
             document.getElementById('map').style.display = 'block';
             document.getElementById('btn-logout-action').innerText = "LOGOUT (" + currentUserName.toUpperCase() + ")";
+            
             const savedFilters = sessionStorage.getItem('gpx_filters');
             if (savedFilters) activeFilters = JSON.parse(savedFilters);
+            
             setupDropdowns();
             initMap();
             attivaGPS();
@@ -180,30 +190,23 @@
         }
     });
 
+    // --- LOGIN ACTION ---
     document.getElementById('btn-login-action').addEventListener('click', async () => {
-        const user = document.getElementById('username').value.toLowerCase().trim();
+        const userInput = document.getElementById('username').value.toLowerCase().trim();
         const pass = document.getElementById('pass').value;
-        let email = user;
-        if (!user.includes('@')) {
-            if (user === 'rampi') email = 'rampi@grifo.mtb';
-            else if (user === 'trek') email = 'trek@king.old';
-            else email = user + '@grifo.mtb';
+        let email = userInput;
+        if (!userInput.includes('@')) {
+            if (userInput === 'rampi') email = 'rampi@grifo.mtb';
+            else if (userInput === 'trek') email = 'trek@king.old';
+            else email = userInput + '@grifo.mtb';
         }
-        const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
-        if (error) alert("Credenziali errate");
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+        if (error) alert("Credenziali errate: " + error.message);
     });
 
     document.getElementById('btn-logout-action').addEventListener('click', () => {
         sessionStorage.removeItem('gpx_filters');
         supabaseClient.auth.signOut();
-    });
-
-    // --- GESTIONE SCORRIMENTO BOTTONI ---
-    document.getElementById('btn-prev-track').addEventListener('click', () => {
-        listCont.scrollBy({ left: -listCont.offsetWidth, behavior: 'smooth' });
-    });
-    document.getElementById('btn-next-track').addEventListener('click', () => {
-        listCont.scrollBy({ left: listCont.offsetWidth, behavior: 'smooth' });
     });
 
     // --- MAPPA ---
@@ -279,7 +282,7 @@
     document.getElementById('btn-clear-filters').onclick = () => { sessionStorage.removeItem('gpx_filters'); location.reload(); };
     document.getElementById('btn-filter').onclick = () => document.getElementById('filter-modal').style.display='flex';
 
-    // --- CARICAMENTO E RICERCA ---
+    // --- RICERCA E VISUALIZZAZIONE ---
     async function caricaArea() {
         if (!map) return;
         const b = map.getBounds();
@@ -332,15 +335,19 @@
             const d = new Date(t.data_unix * 1000), det = detailsMap[t.id] || { Note: "", Creatore: "Daniele" };
             const card = document.createElement('div');
             card.className = 'track-card'; card.setAttribute('data-id', t.id);
-            card.innerHTML = `<div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div><div class="stats-grid"><div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div><div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div><div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div><div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div><div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div></div><div class="file-row"><span class="file-name" style="font-size:9px; color:#999;">📄 ${t.nome_file}</span><div class="btn-group"><button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button><button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button></div></div>`;
+            card.innerHTML = `<div class="track-header"><span class="track-date">📅 ${d.toLocaleDateString('it-IT')} <span class="track-time">ore ${d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} (${det.Creatore})</span></span></div><div class="stats-grid"><div class="stat-item"><span class="stat-icon">${t.tipo_percorso==='MTB'?'🚵':'🥾'}</span> ${t.tipo_percorso}</div><div class="stat-item"><span class="stat-icon">📏</span> ${t.lunghezza}km</div><div class="stat-item"><span class="stat-icon">⛰️</span> ${t.dislivello}m</div><div class="stat-item"><span class="stat-icon">🕒</span> ${t.durata}</div><div class="stat-item"><span class="stat-icon">📍</span> ${t.distanza_metri.toFixed(0)}m</div></div><div class="file-row"><span class="file-name" style="font-size:9px; color:#999;">📄 ${t.nome_file}</span><div class="btn-group"><button class="btn-action btn-note-item" style="background:${(det.Note||'').trim() ? '#e74c3c' : '#000'}">📝 NOTE</button><button class="btn-action btn-alt-item" style="background:#3498db">📈 ALT</button><button class="btn-action btn-gpx-item" style="background:#27ae60">💾 GPX</button></div></div>`;
+            
+            // ASSEGNAZIONE EVENTI BOTTONI CARD
+            card.querySelector('.btn-note-item').onclick = () => apriEditorNote(t.id, t.nome_file, det.Note);
             card.querySelector('.btn-alt-item').onclick = () => mostraAlt(t.id, t.nome_file);
             card.querySelector('.btn-gpx-item').onclick = () => scarica(t.id, t.nome_file);
+            
             lista.appendChild(card);
         });
         setTimeout(() => { 
             listCont.scrollLeft = targetIdx * listCont.offsetWidth; 
             aggiornaVista(filtered[targetIdx].id, targetIdx + 1); 
-        }, 200);
+        }, 150);
     }
 
     function aggiornaVista(id, cur) {
@@ -350,17 +357,60 @@
         if (cache[id]) { cache[id].setStyle({ color: colACT, weight: 8, opacity: 1 }).bringToFront(); map.fitBounds(cache[id].getBounds(), { paddingBottomRight: [20, 180] }); }
     }
 
-    listCont.addEventListener('scroll', () => { 
-        clearTimeout(window.st); 
-        window.st = setTimeout(() => { 
-            const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); 
-            const card = listCont.children[idx]; 
-            if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); 
-        }, 150); 
-    });
+    listCont.addEventListener('scroll', () => { clearTimeout(window.st); window.st = setTimeout(() => { const idx = Math.round(listCont.scrollLeft / listCont.offsetWidth); const card = listCont.children[idx]; if (card) aggiornaVista(card.getAttribute('data-id'), idx + 1); }, 150); });
     
     function chiudiMenu() { document.getElementById('menu').style.display='none'; if(markerClick) map.removeLayer(markerClick); if(highlightedId && cache[highlightedId]) { const t = cache[highlightedId]; t.setStyle({ color: t.options.tipo === 'MTB' ? colMTB : colTRK, weight: 3, opacity: 0.6 }); } highlightedId=null; isImporting = false; }
     document.getElementById('btn-close-menu').onclick = chiudiMenu;
+
+    // --- NOTE EDITOR ---
+    function apriEditorNote(id, nome, noteAttuali) {
+        idInModifica = id;
+        document.getElementById('note-file-title').innerText = "Traccia: " + nome;
+        document.getElementById('edit-note-input').value = noteAttuali || "";
+        document.getElementById('note-modal').style.display = 'flex';
+    }
+    async function salvaNotaModificata() {
+        const { error } = await supabaseClient.from('Tracce').update({ Note: document.getElementById('edit-note-input').value }).eq('id', idInModifica);
+        if (error) alert("Errore: " + error.message);
+        else {
+            document.getElementById('note-modal').style.display = 'none';
+            if (markerClick) eseguiRicerca(markerClick.getLatLng().lat, markerClick.getLatLng().lng, idInModifica);
+        }
+    }
+
+    // --- IMPORT / EXPORT / ALT ---
+    async function salvaTraccia(tipo) {
+        tempImport.TipoPercorso = tipo; tempImport.Note = document.getElementById('note-import-input').value; tempImport.Creatore = document.getElementById('creatore-input').value;
+        const { data, error } = await supabaseClient.from('Tracce').insert([tempImport]).select();
+        if (error) { if (error.code === '23505') alert("Già presente!"); else alert("Errore: " + error.message); return; }
+        isImporting = true; document.getElementById('import-modal').style.display='none';
+        tracceLayer.clearLayers(); cache = {};
+        setTimeout(async () => { await caricaArea(); eseguiRicerca(data[0].CoordLight[0][0], data[0].CoordLight[0][1], data[0].id); }, 800);
+    }
+
+    function avviaImport(ev) {
+        const file = ev.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const xml = new DOMParser().parseFromString(e.target.result, "text/xml"), pts = xml.querySelectorAll("trkpt");
+            let orig = [], alts = [], dist = 0, gain = 0, start = null, end = null;
+            pts.forEach((p, i) => {
+                const la = parseFloat(p.getAttribute("lat")), lo = parseFloat(p.getAttribute("lon")), el = parseFloat(p.querySelector("ele")?.textContent || 0), ti = p.querySelector("time")?.textContent;
+                orig.push([la, lo]);
+                if (i > 0) {
+                    const R=6371, dLa=(la-orig[i-1][0])*Math.PI/180, dLo=(lo-orig[i-1][1])*Math.PI/180, a=Math.sin(dLa/2)**2+Math.cos(orig[i-1][0]*Math.PI/180)*Math.cos(la*Math.PI/180)*Math.sin(dLo/2)**2;
+                    dist += R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+                    let ePr = parseFloat(pts[i-1].querySelector("ele")?.textContent || 0); if (el > ePr) gain += (el - ePr);
+                }
+                alts.push([parseFloat(dist.toFixed(2)), Math.round(el)]); if (i === 0) start = ti; end = ti;
+            });
+            const dU = start ? Math.floor(new Date(start).getTime()/1000) : Math.floor(Date.now()/1000);
+            const DP = (p,e) => { let d=0,idx=0; for(let i=1;i<p.length-1;i++){ let dist=Math.abs((p[p.length-1][1]-p[0][1])*p[i][0]-(p[p.length-1][0]-p[0][0])*p[i][1]+p[p.length-1][0]*p[0][1]-p[p.length-1][1]*p[0][0])/Math.sqrt((p[p.length-1][1]-p[0][1])**2+(p[p.length-1][0]-p[0][0])**2); if(dist>d){idx=i;d=dist}} return d>e?DP(p.slice(0,idx+1),e).slice(0,-1).concat(DP(p.slice(idx),e)):[p[0],p[p.length-1]] };
+            tempImport = { NomeFile: dU.toString(), Data: dU, Lunghezza: parseFloat(dist.toFixed(2)), Dislivello: Math.round(gain).toString(), Durata: (start && end) ? `${Math.floor((new Date(end)-new Date(start))/3600000).toString().padStart(2,'0')}:${Math.floor(((new Date(end)-new Date(start))%3600000)/60000).toString().padStart(2,'0')}` : "--:--", CoordLight: DP(orig, 0.00005), Altimetria: alts };
+            document.getElementById('nome-file-info').innerText = "Unix ID: " + dU; document.getElementById('creatore-input').value = currentUserName; document.getElementById('import-modal').style.display='flex';
+        };
+        reader.readAsText(file);
+    }
 
     async function scarica(id, nome) {
         const { data } = await supabaseClient.from('Tracce').select('CoordLight').eq('id', id).single();
@@ -382,6 +432,8 @@
     const ap = document.getElementById("alt-popup"), ah = document.getElementById("alt-header");
     ah.onmousedown = (e) => { e.preventDefault(); let p3=e.clientX, p4=e.clientY; document.onmouseup=()=>document.onmousemove=null; document.onmousemove=(e)=>{ let p1=p3-e.clientX, p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; ap.style.top=(ap.offsetTop-p2)+"px"; ap.style.left=(ap.offsetLeft-p1)+"px"; ap.style.transform="none"; }; };
 
+    document.getElementById('btn-prev-track').addEventListener('click', () => { listCont.scrollBy({ left: -listCont.offsetWidth, behavior: 'smooth' }); });
+    document.getElementById('btn-next-track').addEventListener('click', () => { listCont.scrollBy({ left: listCont.offsetWidth, behavior: 'smooth' }); });
 </script>
 </body>
 </html>
